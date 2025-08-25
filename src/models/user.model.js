@@ -33,13 +33,9 @@ const userSchema = new mongoose.Schema(
       minlength: 8,
       private: true, // used by the toJSON plugin
     },
-    amount: {
-      type: Number,
-      default: 0,
-    },
     role: {
       type: String,
-      enum: ['admin', 'user'],
+      enum: ['admin', 'scorekeeper'],
       default: 'user',
     },
   },
@@ -48,7 +44,7 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-userSchema.index({ username: 'text', email: 'text' });
+userSchema.index({ email: 'text' });
 
 // add plugin that converts mongoose to json
 userSchema.plugin(toJSON);
@@ -90,14 +86,6 @@ userSchema.statics.loginUser = async function (email, password) {
   return user;
 };
 
-// To get group info with user data
-userSchema.virtual('groupsCreated', {
-  ref: 'Group',
-  localField: '_id',
-  foreignField: 'createdBy',
-});
-userSchema.set('toObject', { virtuals: true });
-userSchema.set('toJSON', { virtuals: true });
 
 const User = mongoose.model('User', userSchema);
 

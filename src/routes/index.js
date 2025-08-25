@@ -9,7 +9,7 @@ const pages = require('../routes/page.route');
 //admin profile
 const adminProfile = require('./admin/profile.route');
 const userManagement = require('./admin/user.route');
-
+const adminField = require('./admin/field.route');
 const adminSetting = require('./admin/setting.route');
 const adminDashboard = require('./admin/dashboard.route');
 
@@ -21,6 +21,7 @@ router.use('/pages', pages);
 
 //all admin route
 router.use('/admin', adminAuth);
+router.use('/admin/field',adminField);
 router.use('/admin/dashboard', adminDashboard);
 router.use('/admin/profile', adminProfile);
 router.use('/admin/user-management', userManagement);

@@ -31,9 +31,14 @@ const envVarsSchema = Joi.object()
       'the from field in the emails sent by the app',
     ),
     S3_BUCKET_PATH: Joi.string().description('BUCKET PATH for AWS s3 bucket'),
+    AWS_ACCESS_KEY_ID: Joi.string().required().description('AWS access key ID'),
+    AWS_SECRET_ACCESS_KEY: Joi.string()
+      .required()
+      .description('AWS secret access key'),
+    AWS_REGION: Joi.string().required().description('AWS S3 region'),
+    AWS_S3_BUCKET: Joi.string().required().description('AWS S3 bucket name')
   })
   .unknown();
-
 const { value: envVars, error } = envVarsSchema
   .prefs({ errors: { label: 'key' } })
   .validate(process.env);
@@ -64,6 +69,10 @@ module.exports = {
     from: envVars.EMAIL_FROM,
   },
   s3: {
-    S3_BUCKET_PATH: envVars.S3_BUCKET_PATH,
+    AWS_S3_BUCKET: envVars.AWS_S3_BUCKET,
+    AWS_ACCESS_KEY_ID: envVars.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: envVars.AWS_SECRET_ACCESS_KEY,
+    AWS_REGION: envVars.AWS_REGION,
   },
+  APP_BASE_URL: envVars.APP_BASE_URL
 };
