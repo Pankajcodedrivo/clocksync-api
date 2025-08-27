@@ -17,6 +17,9 @@ const sendSendgridEmail = async (to, subject, otp, tid) => {
 
 const sendSGEmail = async (mailData) => {
   sgMail.setApiKey(config.email.sg.sendGridApiKey);
+  if (!mailData.from) {
+    mailData.from = config.email.from;
+  }
   sgMail.send(mailData).then(
     () => {
       logger.info('mail sent');
@@ -31,4 +34,5 @@ const sendSGEmail = async (mailData) => {
 
 module.exports = {
   sendSendgridEmail,
+  sendSGEmail
 };

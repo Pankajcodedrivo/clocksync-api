@@ -4,6 +4,7 @@ const ApiError = require('../../helpers/apiErrorConverter');
 const mongoose = require('mongoose');
 const { http } = require('winston');
 const email = require('../email/email.service');
+const config = require('../../config/config');
 
 const userListFind = async (
   id,
@@ -53,6 +54,15 @@ const userListFind = async (
 
 const addUser = async (userData) => {
   const user = await User.create(userData);
+  await email.sendSGEmail({
+    to: userData.email,
+    templateId: "d-311528c1a1714e0492e169456db9b01b",
+    dynamic_template_data: {
+      email: userData.email,
+      password: userData.password,
+      url: config.ADMIN_BASE_URL
+    },
+  });
   return user;
 };
 

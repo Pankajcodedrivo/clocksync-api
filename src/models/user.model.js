@@ -36,7 +36,11 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ['admin', 'scorekeeper'],
-      default: 'user',
+      default: 'admin',
+    },
+    firstTimeLogin: {
+      type: Boolean,
+      default: false,
     },
   },
   {

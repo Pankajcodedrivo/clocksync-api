@@ -20,6 +20,9 @@ const addUser = catchAsync(async (req, res) => {
   if (req.file && req.file.location) {
     data.profileimageurl = req.file.location;
   }
+  if (data.role === "scorekeeper") {
+    data.firstTimeLogin = true;
+  }
   const userData = await service.addUser(data);
   res.status(200).json({
     status: 200,

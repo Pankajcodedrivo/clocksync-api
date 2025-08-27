@@ -36,7 +36,9 @@ const envVarsSchema = Joi.object()
       .required()
       .description('AWS secret access key'),
     AWS_REGION: Joi.string().required().description('AWS S3 region'),
-    AWS_S3_BUCKET: Joi.string().required().description('AWS S3 bucket name')
+    AWS_S3_BUCKET: Joi.string().required().description('AWS S3 bucket name'),
+    APP_BASE_URL: Joi.string().required().description('Frontend url'),
+    ADMIN_BASE_URL: Joi.string().required().description('Admin url'),
   })
   .unknown();
 const { value: envVars, error } = envVarsSchema
@@ -74,5 +76,6 @@ module.exports = {
     AWS_SECRET_ACCESS_KEY: envVars.AWS_SECRET_ACCESS_KEY,
     AWS_REGION: envVars.AWS_REGION,
   },
-  APP_BASE_URL: envVars.APP_BASE_URL
+  APP_BASE_URL: envVars.APP_BASE_URL,
+  ADMIN_BASE_URL: envVars.ADMIN_BASE_URL
 };

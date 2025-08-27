@@ -18,6 +18,10 @@ const passchange = Joi.object({
   password_old: Joi.string().required().custom(password),
 });
 
+const passchangefirst = Joi.object({
+  password: Joi.string().required().custom(password),
+});
+
 const notificationToggle = Joi.object({
   notification: Joi.boolean().required(),
 });
@@ -50,4 +54,5 @@ module.exports = {
   immegrationRequest,
   support,
   singleId,
+  passchangefirst
 };

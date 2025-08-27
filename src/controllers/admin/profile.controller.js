@@ -1,6 +1,6 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const service = require('../../services/admin/auth.service');
-const { updatePassword } = require('../../services/auth/auth.service');
+const { updatePassword, updatePasswordFirst } = require('../../services/auth/auth.service');
 
 const updateProfileImage = catchAsync(async (req, res, next) => {
   let profileimageurl;
@@ -33,8 +33,15 @@ const passwordChange = catchAsync(async (req, res, next) => {
   res.status(200).send({ message: 'Password Updated Successfully' });
 });
 
+// Password change
+const passchangefirst = catchAsync(async (req, res, next) => {
+  await updatePasswordFirst(req.user, req.body.password);
+  res.status(200).send({ message: 'Password Updated Successfully' });
+});
+
 module.exports = {
   updateProfileImage,
   updateProfile,
   passwordChange,
+  passchangefirst
 };

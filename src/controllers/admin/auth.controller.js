@@ -8,8 +8,8 @@ const otp = require('../../services/auth/otp.service');
 // Admin login
 const adminLogin = catchAsync(async (req, res, next) => {
   const user = await service.loginUser(req.body.email, req.body.password);
-  if (user.role !== 'admin') {
-    throw new ApiError('User must be admin');
+  if (user.role !== "admin" && user.role !== "scorekeeper") {
+    throw new ApiError("User must be admin or scorekeeper");
   }
   const tokens = await token.generateAuthTokens(user);
   res

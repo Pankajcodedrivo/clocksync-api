@@ -81,6 +81,16 @@ const updatePassword = async (user, newpass, oldpass) => {
   }
   return changePassword(user.email, newpass);
 };
+
+const updatePasswordFirst = async (user, newpass) => {
+  const isMatch = await bcrypt.compare(newpass, user.password);
+  if (isMatch) {
+    throw new ApiError('New password cannot be the same as the old password', 400);
+  }
+  const pwd = await bcrypt.hash(newpass, 8);
+  return User.findOneAndUpdate({ email: user.email }, { password: pwd, firstTimeLogin: false });
+};
+
 // update User
 const updateUser = async (id, data) => {
   const updatedUser = await User.findByIdAndUpdate(
@@ -121,5 +131,6 @@ module.exports = {
   getUserDataById,
   checkUserExistById,
   updateUser,
-  listUser
+  listUser,
+  updatePasswordFirst
 };

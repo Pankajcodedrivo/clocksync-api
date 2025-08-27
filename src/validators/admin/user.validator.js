@@ -22,10 +22,12 @@ const addUser = Joi.object({
   fullName: Joi.string().required(),
   email: Joi.string().email().required(),
   password: Joi.string().required(),
+  role: Joi.string().valid('admin', 'scorekeeper').required(),
 });
 
 const updateuser = Joi.object({
   fullName: Joi.string().required(),
+  role: Joi.string().valid('admin', 'scorekeeper').required(),
 });
 
 const singleId = Joi.object({

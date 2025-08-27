@@ -8,7 +8,7 @@ const validator = require('express-joi-validation').createValidator({
 
 const upload = require('../../middlewares/multer.middleware');
 
-router.use(auth('admin'));
+router.use(auth(['admin', 'scorekeeper']));
 
 router.patch(
   '/image-update',
@@ -22,6 +22,12 @@ router.patch(
   '/change-password',
   validator.body(validationSchema.passchange),
   controller.passwordChange,
+);
+
+router.patch(
+  '/change-password-first',
+  validator.body(validationSchema.passchangefirst),
+  controller.passchangefirst,
 );
 module.exports = router;
 

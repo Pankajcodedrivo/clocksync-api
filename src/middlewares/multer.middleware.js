@@ -1,10 +1,9 @@
 const multer = require('multer');
 const multerS3 = require('multer-s3');
-const AWS = require('aws-sdk');
+const { S3Client } = require('@aws-sdk/client-s3');
 const config = require('../config/config'); // your config file with env vars
-
 // Configure AWS S3
-const s3 = new AWS.S3({
+const s3 = new S3Client({
   accessKeyId: config.s3.AWS_ACCESS_KEY_ID,
   secretAccessKey: config.s3.AWS_SECRET_ACCESS_KEY,
   region: config.s3.AWS_REGION,
