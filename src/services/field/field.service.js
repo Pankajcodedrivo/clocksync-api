@@ -11,6 +11,12 @@ const getByFieldId = async (id) => {
   return Field.findById(id);
 };
 
+// Get All Fields
+const getAllField = async () => {
+  return Field.find();
+};
+
+
 // update Field
 const updateField = async (id, data) => {
   const updatedField = await Field.findByIdAndUpdate(
@@ -58,5 +64,6 @@ module.exports = {
   getByFieldId,
   updateField,
   listFields,
-  deleteFieldById
+  deleteFieldById,
+  getAllField
 };

@@ -16,7 +16,13 @@ const search = catchAsync(async (req, res) => {
   res.status(200).send({ searchData });
 });
 
+const getAllScoreKeeper = catchAsync(async (req, res) => {
+
+  const scoreKeeper = await authService.getAllScoreKeeper();
+  res.status(200).send({ scoreKeeper });
+});
 
 module.exports = {
-  search
+  search,
+  getAllScoreKeeper
 };

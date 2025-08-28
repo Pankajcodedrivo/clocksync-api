@@ -102,6 +102,10 @@ const updateUser = async (id, data) => {
   return updatedUser;
 };
 
+const getAllScoreKeeper = async () => {
+  return User.find({ role: "scorekeeper" }).select("fullName");
+}
+
 const listUser = async (currentUserId) => {
   const totalItems = await User.countDocuments({
     role: 'user',
@@ -132,5 +136,6 @@ module.exports = {
   checkUserExistById,
   updateUser,
   listUser,
-  updatePasswordFirst
+  updatePasswordFirst,
+  getAllScoreKeeper
 };

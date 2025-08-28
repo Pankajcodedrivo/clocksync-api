@@ -92,6 +92,15 @@ const getFieldById = catchAsync(async (req, res) => {
   res.status(200).json({ field });
 });
 
+
+/**
+ * Get All field
+ */
+const getAllField = catchAsync(async (req, res) => {
+  const field = await service.getAllField();
+  res.status(200).json({ field });
+});
+
 /**
  * Delete Field
  */
@@ -114,5 +123,6 @@ module.exports = {
   updateField,
   getFieldById,
   deleteField,
-  listField
+  listField,
+  getAllField
 };

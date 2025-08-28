@@ -19,27 +19,57 @@ const updateGame = async (id, data) => {
 const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
   const skip = (page - 1) * limit;
 
-  let query = {};
-  if (search) {
-    query = {
-      $or: [
-        { homeTeamName: { $regex: search, $options: "i" } },
-        { awayTeamName: { $regex: search, $options: "i" } },
-      ]
-    };
-  }
-  // Restrict by assignedUserId if role = scorekeeper
+  const match = {};
   if (user?.role === "scorekeeper") {
-    query.assignUserId = user._id;
+    match.assignUserId = user._id;
   }
 
-  const total = await Game.countDocuments(query);
-  const games = await Game.find(query)
-    .populate('fieldId')
-    .populate('assignUserId')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const pipeline = [
+    {
+      $lookup: {
+        from: "fields",               // collection name for fields
+        localField: "fieldId",
+        foreignField: "_id",
+        as: "field",
+      },
+    },
+    { $unwind: { path: "$field", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "users",                // collection name for users
+        localField: "assignUserId",
+        foreignField: "_id",
+        as: "assignUserId",
+      },
+    },
+    { $unwind: { path: "$assignUserId", preserveNullAndEmptyArrays: true } },
+    { $match: match },
+  ];
+
+  // 🔎 Add search filter
+  if (search) {
+    pipeline.push({
+      $match: {
+        $or: [
+          { homeTeamName: { $regex: search, $options: "i" } },
+          { awayTeamName: { $regex: search, $options: "i" } },
+          { "field.name": { $regex: search, $options: "i" } },
+          { "assignUserId.fullName": { $regex: search, $options: "i" } },
+        ],
+      },
+    });
+  }
+
+  const totalPipeline = [...pipeline, { $count: "total" }];
+  const totalResult = await Game.aggregate(totalPipeline);
+  const total = totalResult[0]?.total || 0;
+
+  const games = await Game.aggregate([
+    ...pipeline,
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+  ]);
 
   return {
     total,
@@ -49,6 +79,7 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
     games,
   };
 };
+
 
 // Delete Game
 const deleteGameById = async (id) => {
