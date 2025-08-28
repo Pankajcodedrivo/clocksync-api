@@ -39,10 +39,10 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
         from: "users",                // collection name for users
         localField: "assignUserId",
         foreignField: "_id",
-        as: "assignUserId",
+        as: "assignedUser",
       },
     },
-    { $unwind: { path: "$assignUserId", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$assignedUser", preserveNullAndEmptyArrays: true } },
     { $match: match },
   ];
 
@@ -54,7 +54,7 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
           { homeTeamName: { $regex: search, $options: "i" } },
           { awayTeamName: { $regex: search, $options: "i" } },
           { "field.name": { $regex: search, $options: "i" } },
-          { "assignUserId.fullName": { $regex: search, $options: "i" } },
+          { "assignedUser.fullName": { $regex: search, $options: "i" } },
         ],
       },
     });
@@ -79,13 +79,10 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
     games,
   };
 };
-
-
 // Delete Game
 const deleteGameById = async (id) => {
   return Game.findByIdAndDelete(id);
 };
-
 module.exports = {
   createGame,
   getByGameId,
