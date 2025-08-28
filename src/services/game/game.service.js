@@ -16,7 +16,7 @@ const updateGame = async (id, data) => {
 };
 
 // List all games with pagination + search
-const listGames = async ({ page = 1, limit = 10, search = "" }) => {
+const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
   const skip = (page - 1) * limit;
 
   let query = {};
@@ -27,6 +27,10 @@ const listGames = async ({ page = 1, limit = 10, search = "" }) => {
         { awayTeamName: { $regex: search, $options: "i" } },
       ]
     };
+  }
+  // Restrict by assignedUserId if role = scorekeeper
+  if (user?.role === "scorekeeper") {
+    query.assignUserId = user._id;
   }
 
   const total = await Game.countDocuments(query);

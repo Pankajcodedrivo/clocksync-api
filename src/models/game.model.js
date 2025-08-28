@@ -13,6 +13,9 @@ const GameSchema = new mongoose.Schema({
     startDateTime: {
         type: Date,
     },
+    endDateTime: {
+        type: Date,
+    },
     assignUserId: {
         type: mongoose.Types.ObjectId,
         ref: User,

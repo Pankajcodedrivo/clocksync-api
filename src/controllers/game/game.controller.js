@@ -13,7 +13,7 @@ const listGames = catchAsync(async (req, res) => {
   const page = parseInt(req.params.page) || 1;
   const limit = parseInt(req.params.limit) || 10;
   const search = req.query.search || "";
-  const result = await service.listGames({ page, limit, search });
+  const result = await service.listGames({ page, limit, search, user: req.user });
 
   res.status(200).json({
     success: true,
