@@ -42,6 +42,13 @@ const getGameById = catchAsync(async (req, res) => {
   res.status(200).json({ game });
 });
 
+const getGameByIdAndUserId = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const game = await service.getGameByIdAndUserId(id, req.user.id);
+  if (!game) throw new ApiError(404, 'Game not found');
+
+  res.status(200).json({ game });
+});
 // Delete Game
 const deleteGame = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -56,5 +63,6 @@ module.exports = {
   updateGame,
   getGameById,
   deleteGame,
-  listGames
+  listGames,
+  getGameByIdAndUserId
 };

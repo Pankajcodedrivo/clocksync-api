@@ -1,0 +1,76 @@
+const GameStatistics = require("../models/gameStatistics.model");
+
+// Create stats for new game
+const createGameStatistics = async (gameId) => {
+    return GameStatistics.create({ gameId });
+};
+
+// Get stats by gameId
+const getStatsByGameId = async (gameId) => {
+    return GameStatistics.findOne({ gameId });
+};
+
+// Set team score directly
+const setScore = async (gameId, team, value) => {
+    if (value < 0) value = 0;
+    const path = `${team.toLowerCase()}Team.score`;
+
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        { $set: { [path]: value } },
+        { new: true }
+    );
+};
+
+// Set team stat directly (shots, fouls, saves, penalties count)
+const setTeamStat = async (gameId, team, field, value) => {
+    if (value < 0) value = 0;
+    const path = `${team.toLowerCase()}Team.stats.${field}`;
+
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        { $set: { [path]: value } },
+        { new: true }
+    );
+};
+
+// Add goal (timeline only)
+const addGoal = async (gameId, team, playerNo, minute, time) => {
+    const goal = { team, playerNo, minute, time };
+
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        { $push: { goals: goal } },
+        { new: true }
+    );
+};
+
+// Add penalty (timeline only)
+const addPenalty = async (gameId, team, type, playerNo, startTime, minutes, seconds) => {
+    const penalty = { team, type, playerNo, startTime, minutes, seconds };
+
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        { $push: { penalties: penalty } },
+        { new: true }
+    );
+};
+
+// Update clock
+const updateClock = async (gameId, quarter, minutes, seconds) => {
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        { $set: { clock: { quarter, minutes, seconds } } },
+        { new: true }
+    );
+};
+
+module.exports = {
+    createGameStatistics,
+    getStatsByGameId,
+    setScore,
+    setTeamStat,
+    addGoal,
+    addPenalty,
+    updateClock,
+};

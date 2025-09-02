@@ -101,6 +101,15 @@ const getAllField = catchAsync(async (req, res) => {
   res.status(200).json({ field });
 });
 
+
+/**
+ * Get All field
+ */
+const getFieldBySlug = catchAsync(async (req, res) => {
+  const { field, games } = await service.getFieldBySlug(req.params.slug);
+  res.status(200).json({ field, games });
+});
+
 /**
  * Delete Field
  */
@@ -124,5 +133,6 @@ module.exports = {
   getFieldById,
   deleteField,
   listField,
-  getAllField
+  getAllField,
+  getFieldBySlug
 };

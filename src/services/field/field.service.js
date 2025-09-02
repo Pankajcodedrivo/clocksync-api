@@ -1,5 +1,6 @@
 const Field = require('../../models/field.model');
 const ApiError = require('../../helpers/apiErrorConverter');
+const gameService = require('../game/game.service');
 
 // Create new Field
 const createField = async (data) => {
@@ -59,11 +60,25 @@ const listFields = async ({ page = 1, limit = 10, search = "" }) => {
 const deleteFieldById = async (id) => {
   return Field.findByIdAndDelete(id)
 };
+
+const getFieldBySlug = async (slug) => {
+  const field = await Field.findOne({ slug });
+  if (!field) {
+    throw new ApiError("Field not found", 404);
+  }
+  const games = await gameService.getGameByFieldId(field._id); // earliest first
+
+  return {
+    field,
+    games
+  }
+}
 module.exports = {
   createField,
   getByFieldId,
   updateField,
   listFields,
   deleteFieldById,
-  getAllField
+  getAllField,
+  getFieldBySlug
 };

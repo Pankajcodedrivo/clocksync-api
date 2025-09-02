@@ -10,6 +10,11 @@ const getByGameId = async (id) => {
   return Game.findById(id).populate('fieldId').populate('assignUserId');
 };
 
+// Find Game by id
+const getGameByIdAndUserId = async (_id, assignUserId) => {
+  return Game.findOne({ _id, assignUserId });
+};
+
 // Update Game
 const updateGame = async (id, data) => {
   return Game.findByIdAndUpdate(id, { $set: data }, { new: true });
@@ -83,10 +88,19 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
 const deleteGameById = async (id) => {
   return Game.findByIdAndDelete(id);
 };
+
+const getGameByFieldId = async (id) => {
+  return Game.findOne({ fieldId: id })
+    .sort({ startDateTime: 1 });
+};
+
+
 module.exports = {
   createGame,
   getByGameId,
   updateGame,
   listGames,
-  deleteGameById
+  deleteGameById,
+  getGameByFieldId,
+  getGameByIdAndUserId
 };
