@@ -91,6 +91,16 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
     });
 
+    socket.on('resetGame', async ({ gameId }) => {
+      try {
+        const stats = await GameStatisticsService.resetGame(gameId);
+        io.to(gameId).emit('gameReset', stats);
+        console.log(`Game ${gameId} reset by socket ${socket.id}`);
+      } catch (err) {
+        socket.emit('error', err.message);
+      }
+    });
+
     // Disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.id}`);

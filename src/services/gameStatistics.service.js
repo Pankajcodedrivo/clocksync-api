@@ -10,6 +10,23 @@ const getStatsByGameId = async (gameId) => {
     return GameStatistics.findOne({ gameId });
 };
 
+const resetGame = async (gameId) => {
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        {
+            $set: {
+                "homeTeam.score": 0,
+                "awayTeam.score": 0,
+                "homeTeam.stats": { shots: 0, fouls: 0, saves: 0, penalties: 0 },
+                "awayTeam.stats": { shots: 0, fouls: 0, saves: 0, penalties: 0 },
+                goals: [],
+                penalties: [],
+                clock: { quarter: 1, minutes: 0, seconds: 0 }
+            }
+        },
+        { new: true }
+    );
+};
 // Set team score directly
 const setScore = async (gameId, team, value) => {
     if (value < 0) value = 0;
@@ -73,4 +90,5 @@ module.exports = {
     addGoal,
     addPenalty,
     updateClock,
+    resetGame
 };
