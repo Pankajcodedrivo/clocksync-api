@@ -31,7 +31,7 @@ const verifyScoreKeeperCode = async (code) => {
     }
 
     // Delete code to enforce one-time use
-    //await ScoreKeeperCode.deleteOne({ _id: record._id });
+    await ScoreKeeperCode.deleteOne({ _id: record._id });
 
     // Fetch the user if needed for token generation
     const user = await User.findById(record.userId);

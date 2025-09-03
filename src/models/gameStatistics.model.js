@@ -3,7 +3,7 @@ const Game = require('./game.model');
 
 // Clock schema
 const ClockSchema = new mongoose.Schema({
-    quarter: { type: Number, default: 1 },
+    quarter: { type: Number, default: 0 },
     minutes: { type: Number, default: 0 },
     seconds: { type: Number, default: 0 }
 }, { _id: false });

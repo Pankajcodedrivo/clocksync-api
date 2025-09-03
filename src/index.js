@@ -42,6 +42,7 @@ mongoose.connect(config.mongoose.url).then(() => {
     // ✅ Set Score
     socket.on('setScore', async ({ gameId, team, value }) => {
       try {
+        console.log(team);
         const stats = await GameStatisticsService.setScore(gameId, team, value);
         io.to(gameId).emit('scoreUpdated', stats);
       } catch (err) {

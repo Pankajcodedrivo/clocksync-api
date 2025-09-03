@@ -1,10 +1,13 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/game/game.service');
+const gameStatisticsService = require('../../services/gameStatistics.service');
 
 // Create Game
 const createGame = catchAsync(async (req, res) => {
   const game = await service.createGame(req.body);
+  gameStatisticsService.createGameStatistics(game._id);
+
   res.status(201).json({ message: 'Game created successfully', game });
 });
 
@@ -37,6 +40,7 @@ const updateGame = catchAsync(async (req, res) => {
 const getGameById = catchAsync(async (req, res) => {
   const { id } = req.params;
   const game = await service.getByGameId(id);
+
   if (!game) throw new ApiError(404, 'Game not found');
 
   res.status(200).json({ game });
@@ -45,9 +49,10 @@ const getGameById = catchAsync(async (req, res) => {
 const getGameByIdAndUserId = catchAsync(async (req, res) => {
   const { id } = req.params;
   const game = await service.getGameByIdAndUserId(id, req.user.id);
+  const gameStatistics = await gameStatisticsService.getStatsByGameId(id);
   if (!game) throw new ApiError(404, 'Game not found');
 
-  res.status(200).json({ game });
+  res.status(200).json({ game, gameStatistics });
 });
 // Delete Game
 const deleteGame = catchAsync(async (req, res) => {
