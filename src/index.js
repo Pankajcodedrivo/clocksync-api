@@ -8,6 +8,7 @@ const config = require('./config/config');
 const GameStatisticsService = require('./services/gameStatistics.service');
 
 let io, server;
+const activeTimers = new Map(); // keep intervals by gameId
 
 mongoose.connect(config.mongoose.url).then(() => {
   logger.info('Connected to MongoDB');
@@ -23,26 +24,95 @@ mongoose.connect(config.mongoose.url).then(() => {
     cors: { origin: '*', methods: ['GET', 'POST'] },
   });
 
+  // 🕒 helper: start clock interval
+  const startClockInterval = (gameId) => {
+    if (activeTimers.has(gameId)) return;
+
+    const interval = setInterval(async () => {
+      const g = await GameStatisticsService.getStatsByGameId(gameId);
+      if (!g || !g.clock.running) return;
+
+      let total = g.clock.minutes * 60 + g.clock.seconds;
+      total--;
+
+      if (total <= 0) {
+        g.clock.minutes = 0;
+        g.clock.seconds = 0;
+        g.clock.running = false;
+        clearInterval(activeTimers.get(gameId));
+        activeTimers.delete(gameId);
+      } else {
+        g.clock.minutes = Math.floor(total / 60);
+        g.clock.seconds = total % 60;
+      }
+      await g.save();
+      io.to(gameId).emit("clockUpdated", g.clock);
+    }, 1000);
+
+    activeTimers.set(gameId, interval);
+  };
+
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    // ✅ Join room by gameId
     socket.on('joinRoom', ({ gameId }) => {
       if (!gameId) return;
       socket.join(gameId);
       console.log(`Socket ${socket.id} joined room ${gameId}`);
     });
 
-    // ✅ Leave room
     socket.on('leaveRoom', ({ gameId }) => {
       socket.leave(gameId);
       console.log(`Socket ${socket.id} left room ${gameId}`);
     });
 
-    // ✅ Set Score
+    // ✅ Clock controls
+    socket.on('startClock', async ({ gameId }) => {
+      const game = await GameStatisticsService.getStatsByGameId(gameId);
+      if (!game) return;
+      game.clock.running = true;
+      await game.save();
+      startClockInterval(gameId);
+      io.to(gameId).emit('clockUpdated', game.clock);
+    });
+
+    socket.on('pauseClock', async ({ gameId }) => {
+      const game = await GameStatisticsService.getStatsByGameId(gameId);
+      if (!game) return;
+      game.clock.running = false;
+      await game.save();
+      if (activeTimers.has(gameId)) {
+        clearInterval(activeTimers.get(gameId));
+        activeTimers.delete(gameId);
+      }
+      io.to(gameId).emit('clockUpdated', game.clock);
+    });
+
+    socket.on('setClock', async ({ gameId, minutes, seconds }) => {
+      const game = await GameStatisticsService.getStatsByGameId(gameId);
+      if (!game) return;
+      game.clock.minutes = minutes;
+      game.clock.seconds = seconds;
+      await game.save();
+      io.to(gameId).emit('clockUpdated', game.clock);
+    });
+
+    socket.on('resetGame', async ({ gameId }) => {
+      try {
+        const stats = await GameStatisticsService.resetGame(gameId);
+        if (activeTimers.has(gameId)) {
+          clearInterval(activeTimers.get(gameId));
+          activeTimers.delete(gameId);
+        }
+        io.to(gameId).emit('gameReset', stats);
+      } catch (err) {
+        socket.emit('error', err.message);
+      }
+    });
+
+    // ✅ Score & stats
     socket.on('setScore', async ({ gameId, team, value }) => {
       try {
-        console.log(team);
         const stats = await GameStatisticsService.setScore(gameId, team, value);
         io.to(gameId).emit('scoreUpdated', stats);
       } catch (err) {
@@ -50,7 +120,15 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
     });
 
-    // ✅ Set Stat
+    // ✅ Quater
+    socket.on('setQuater', async ({ gameId, quarter }) => {
+      try {
+        const stats = await GameStatisticsService.updateClock(gameId, { quarter });
+        io.to(gameId).emit('setQuater', stats);
+      } catch (err) {
+        socket.emit('error', err.message);
+      }
+    });
     socket.on('setStat', async ({ gameId, team, field, value }) => {
       try {
         const stats = await GameStatisticsService.setTeamStat(gameId, team, field, value);
@@ -60,49 +138,24 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
     });
 
-    // ✅ Add Goal
-    socket.on('addGoal', async ({ gameId, team, playerNo, minute, time }) => {
+    socket.on('addGoal', async ({ gameId, team, playerNo, minute }) => {
       try {
-        const stats = await GameStatisticsService.addGoal(gameId, team, playerNo, minute, time);
+        const stats = await GameStatisticsService.addGoal(gameId, team, playerNo, minute);
         io.to(gameId).emit('goalAdded', stats);
       } catch (err) {
         socket.emit('error', err.message);
       }
     });
 
-    // ✅ Add Penalty
-    socket.on('addPenalty', async ({ gameId, team, type, playerNo, startTime, minutes, seconds }) => {
+    socket.on('addPenalty', async ({ gameId, team, type, playerNo, minutes, seconds }) => {
       try {
-        const stats = await GameStatisticsService.addPenalty(
-          gameId, team, type, playerNo, startTime, minutes, seconds
-        );
+        const stats = await GameStatisticsService.addPenalty(gameId, team, type, playerNo, minutes, seconds);
         io.to(gameId).emit('penaltyAdded', stats);
       } catch (err) {
         socket.emit('error', err.message);
       }
     });
 
-    // ✅ Update Clock
-    socket.on('updateClock', async ({ gameId, quarter, minutes, seconds }) => {
-      try {
-        const stats = await GameStatisticsService.updateClock(gameId, quarter, minutes, seconds);
-        io.to(gameId).emit('clockUpdated', stats);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
-
-    socket.on('resetGame', async ({ gameId }) => {
-      try {
-        const stats = await GameStatisticsService.resetGame(gameId);
-        io.to(gameId).emit('gameReset', stats);
-        console.log(`Game ${gameId} reset by socket ${socket.id}`);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
-
-    // Disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.id}`);
     });
@@ -111,27 +164,4 @@ mongoose.connect(config.mongoose.url).then(() => {
   socketApp.listen(socketPort, () => {
     logger.info(`Socket.IO server running on port ${socketPort}`);
   });
-});
-
-const exitHandler = () => {
-  if (server) {
-    server.close(() => {
-      logger.info('Server closed');
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
-};
-
-const unexpectedErrorHandler = (error) => {
-  logger.error(error);
-  exitHandler();
-};
-
-process.on('uncaughtException', unexpectedErrorHandler);
-process.on('unhandledRejection', unexpectedErrorHandler);
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received');
-  if (server) server.close();
 });

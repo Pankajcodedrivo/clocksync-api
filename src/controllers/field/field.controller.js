@@ -106,8 +106,8 @@ const getAllField = catchAsync(async (req, res) => {
  * Get All field
  */
 const getFieldBySlug = catchAsync(async (req, res) => {
-  const { field, games } = await service.getFieldBySlug(req.params.slug);
-  res.status(200).json({ field, games });
+  const { field, games, gameStatistics } = await service.getFieldBySlug(req.params.slug);
+  res.status(200).json({ field, games, gameStatistics });
 });
 
 /**

@@ -1,7 +1,7 @@
 const Field = require('../../models/field.model');
 const ApiError = require('../../helpers/apiErrorConverter');
 const gameService = require('../game/game.service');
-
+const gameStatisticsService = require('../gameStatistics.service');
 // Create new Field
 const createField = async (data) => {
   return Field.create(data);
@@ -67,10 +67,14 @@ const getFieldBySlug = async (slug) => {
     throw new ApiError("Field not found", 404);
   }
   const games = await gameService.getGameByFieldId(field._id); // earliest first
-
+  if (!games) {
+    throw new ApiError("No games are being played on this field", 404);
+  }
+  const gameStatistics = await gameStatisticsService.getStatsByGameId(games?._id);
   return {
     field,
-    games
+    games,
+    gameStatistics
   }
 }
 module.exports = {

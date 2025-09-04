@@ -5,7 +5,8 @@ const Game = require('./game.model');
 const ClockSchema = new mongoose.Schema({
     quarter: { type: Number, default: 0 },
     minutes: { type: Number, default: 0 },
-    seconds: { type: Number, default: 0 }
+    seconds: { type: Number, default: 0 },
+    running: { type: Boolean, default: false }
 }, { _id: false });
 
 // Team stats schema (summary only)
@@ -21,15 +22,15 @@ const TeamStatsSchema = new mongoose.Schema({
 
 // Goal schema
 const GoalSchema = new mongoose.Schema({
-    team: { type: String, enum: ['Home', 'Away'], required: true },
+    team: { type: String, enum: ['home', 'away'], required: true },
     playerNo: { type: Number, required: true },
     minute: { type: Number, required: true },
 }, { _id: false });
 
 // Penalty schema
 const PenaltySchema = new mongoose.Schema({
-    team: { type: String, enum: ['Home', 'Away'], required: true },
-    type: { type: String, enum: ['illegal ', 'legal '], required: true },
+    team: { type: String, enum: ['home', 'away'], required: true },
+    type: { type: String, enum: ['illegal', 'legal'], required: true },
     playerNo: { type: Number, required: true },
     minutes: { type: Number, default: 0 },
     seconds: { type: Number, default: 0 }

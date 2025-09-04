@@ -65,7 +65,6 @@ const addGoal = async (gameId, team, playerNo, minute, time) => {
 // Add penalty (timeline only)
 const addPenalty = async (gameId, team, type, playerNo, startTime, minutes, seconds) => {
     const penalty = { team, type, playerNo, startTime, minutes, seconds };
-
     return GameStatistics.findOneAndUpdate(
         { gameId },
         { $push: { penalties: penalty } },
@@ -74,10 +73,15 @@ const addPenalty = async (gameId, team, type, playerNo, startTime, minutes, seco
 };
 
 // Update clock
-const updateClock = async (gameId, quarter, minutes, seconds) => {
+const updateClock = async (gameId, updates) => {
+    const setData = {};
+    // build dot-notation update for each field
+    for (const key of Object.keys(updates)) {
+        setData[`clock.${key}`] = updates[key];
+    }
     return GameStatistics.findOneAndUpdate(
         { gameId },
-        { $set: { clock: { quarter, minutes, seconds } } },
+        { $set: setData },
         { new: true }
     );
 };
