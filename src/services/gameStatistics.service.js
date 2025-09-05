@@ -21,7 +21,7 @@ const resetGame = async (gameId) => {
                 "awayTeam.stats": { shots: 0, fouls: 0, saves: 0, penalties: 0 },
                 goals: [],
                 penalties: [],
-                clock: { quarter: 1, minutes: 0, seconds: 0 }
+                clock: { quarter: 0, minutes: 0, seconds: 0 }
             }
         },
         { new: true }
