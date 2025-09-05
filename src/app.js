@@ -37,6 +37,7 @@ app.use(
   cors({
     origin: [
       'https://admin-clocksync.codedrivo.com',
+      'https://clocksync.codedrivo.com',
       'http://localhost:5173',
       'http://localhost:5000',
       'http://localhost:4000',
