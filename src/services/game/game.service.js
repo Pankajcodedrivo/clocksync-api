@@ -94,6 +94,10 @@ const getGameByFieldId = async (id) => {
     .sort({ startDateTime: 1 });
 };
 
+const getGameCount = async () => {
+  const totalGames = await Game.countDocuments();
+  return totalGames;
+};
 
 module.exports = {
   createGame,
@@ -102,5 +106,6 @@ module.exports = {
   listGames,
   deleteGameById,
   getGameByFieldId,
-  getGameByIdAndUserId
+  getGameByIdAndUserId,
+  getGameCount
 };

@@ -5,16 +5,25 @@ const service = require('../../services/admin/setting.service');
 const saveSettings = catchAsync(async (req, res, next) => {
   const settingId = req.params.id;
   const data = { ...req.body };
-
   // Extract file locations from req.files
   if (req.files) {
     if (req.files.sitelogo && req.files.sitelogo[0].location) {
       data.sitelogo = req.files.sitelogo[0].location;
     }
-    if (req.files.footerlogo && req.files.footerlogo[0].location) {
-      data.footerlogo = req.files.footerlogo[0].location;
-    }
   }
+  // Handle desktop placements
+  ["top", "right", "left"].forEach((pos) => {
+    if (req.files?.[`desktop[${pos}][image]`]?.[0]?.location) {
+      data.desktop[pos].image = req.files[`desktop[${pos}][image]`][0].location;
+    }
+  });
+
+  // Handle mobile placements
+  ["top", "middle", "bottom"].forEach((pos) => {
+    if (req.files?.[`mobile[${pos}][image]`]?.[0]?.location) {
+      data.mobile[pos].image = req.files[`mobile[${pos}][image]`][0].location;
+    }
+  });
 
   await service.saveSettingData(settingId, data);
   res.status(200).send({ message: 'Settings saved successfully' });

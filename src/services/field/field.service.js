@@ -77,6 +77,11 @@ const getFieldBySlug = async (slug) => {
     gameStatistics
   }
 }
+
+const getFieldCount = async () => {
+  const totalFields = await Field.countDocuments();
+  return totalFields;
+};
 module.exports = {
   createField,
   getByFieldId,
@@ -84,5 +89,6 @@ module.exports = {
   listFields,
   deleteFieldById,
   getAllField,
-  getFieldBySlug
+  getFieldBySlug,
+  getFieldCount
 };

@@ -10,14 +10,24 @@ const validator = require('express-joi-validation').createValidator({
 router.use(auth('admin'));
 
 router.patch(
-  '/savesettings/:id?',
+  "/savesettings/:id?",
   upload.fields([
-    { name: 'sitelogo', maxCount: 1 },
-    { name: 'footerlogo', maxCount: 1 },
+    { name: "sitelogo", maxCount: 1 },
+
+    // Desktop placements
+    { name: "desktop[top][image]", maxCount: 1 },
+    { name: "desktop[right][image]", maxCount: 1 },
+    { name: "desktop[left][image]", maxCount: 1 },
+
+    // Mobile placements
+    { name: "mobile[top][image]", maxCount: 1 },
+    { name: "mobile[middle][image]", maxCount: 1 },
+    { name: "mobile[bottom][image]", maxCount: 1 },
   ]),
   validator.body(validationSettingSchema.saveSetting),
-  controller.saveSettings,
+  controller.saveSettings
 );
+
 router.get('/getsettings', controller.getSettings);
 router.patch(
   '/saveTimeSetting/:id?',

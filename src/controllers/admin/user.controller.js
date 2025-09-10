@@ -33,8 +33,7 @@ const addUser = catchAsync(async (req, res) => {
 
 const edituser = catchAsync(async (req, res) => {
   const userData = await service.editUser(req.params.id);
-  const teamData = await service.getTeamByUserId(req.params.id);
-  res.status(200).send({ status: 200, userData: userData, team: teamData });
+  res.status(200).send({ status: 200, userData: userData });
 });
 
 const updateUser = catchAsync(async (req, res) => {

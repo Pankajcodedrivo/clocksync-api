@@ -52,6 +52,50 @@ const userListFind = async (
   }
 };
 
+const userListFindBySubscibedAdmin = async (
+  id,
+  limit = 10,
+  page = 1,
+  searchQuery = '',
+) => {
+  try {
+    const query = {};
+    if (searchQuery) {
+      const sanitizedSearchTerm = searchQuery.replace(/"/g, '');
+      query.$or = [
+        { fullName: { $regex: sanitizedSearchTerm, $options: 'i' } },
+        { email: { $regex: sanitizedSearchTerm, $options: 'i' } },
+      ];
+    }
+
+
+    query.role = "scorekeeper";
+    query.isSubscribedByAdmin = true;
+
+    if (id) {
+      query._id = { $ne: id };
+    }
+    const skip = (page - 1) * limit;
+    const totalItems = await User.find(query).countDocuments();
+    const users = await User.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const userList = {
+      users,
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+      totalResults: totalItems,
+    };
+
+    return userList;
+  } catch (e) {
+    throw new ApiError(e.message, 404);
+  }
+};
+
 const addUser = async (userData) => {
   const user = await User.create(userData);
   await email.sendSGEmail({
@@ -125,10 +169,9 @@ const userBlockUnblock = async (id, status) => {
 };
 
 // get number of users
-const getUsersCount = async () => {
+const getUsersCount = async (role) => {
   const totalUsers = await User.countDocuments({
-    role: { $not: { $eq: 'admin' } },
-    isActive: true,
+    role
   });
   return totalUsers;
 };
@@ -181,4 +224,5 @@ module.exports = {
   getUsersCount,
   userInvitations,
   addamount,
+  userListFindBySubscibedAdmin
 };

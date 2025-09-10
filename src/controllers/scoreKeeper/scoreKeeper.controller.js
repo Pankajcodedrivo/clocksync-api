@@ -1,5 +1,6 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const scoreKeeperService = require('../../services/scoreKeeper/scoreKeeper.service');
+const userService = require('../../services/admin/user.service');
 const token = require('../../services/auth/token.service');
 // 🔹 Generate one-time code (admin click)
 const generateCode = catchAsync(async (req, res) => {
@@ -17,7 +18,21 @@ const verifyCode = catchAsync(async (req, res) => {
     res.status(200).json({ tokens, gameId });
 });
 
+
+const listUser = catchAsync(async (req, res, next) => {
+    const limit = req.params.limit ? Number(req.params.limit) : 10;
+    const page = req.params.page ? Number(req.params.page) : 1;
+    const search = req.body.search ? req.body.search : '';
+    const users = await userService.userListFindBySubscibedAdmin(
+        req.user._id,
+        limit,
+        page,
+        search,
+    );
+    res.status(200).send({ status: 200, users });
+});
 module.exports = {
     generateCode,
     verifyCode,
+    listUser
 };

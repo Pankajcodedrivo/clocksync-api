@@ -1,77 +1,51 @@
 const mongoose = require('mongoose');
 
+// Updated placement schema
+const placementSchema = new mongoose.Schema(
+  {
+    image: { type: String },                  // logo/banner image URL (optional if using AdSense)
+    link: { type: String },                   // click-through link (optional if using AdSense)
+    googleAdSense: {
+      slot: { type: String },    // Ad unit slot ID
+      width: { type: Number },   // Fixed width (optional)
+      height: { type: Number }   // Fixed height (optional)
+    },          // Google AdSense code (optional if using image/link)
+    useGoogleAd: { type: Boolean, default: false }, // toggle: true = AdSense, false = image/link
+  },
+  { _id: false } // don't need sub-document IDs
+);
+
 const settingsSchema = new mongoose.Schema(
   {
     sitelogo: {
       type: String,
       required: true,
     },
-    footerlogo: {
-      type: String,
-      required: true,
-    },
-
-    footerContent: {
-      type: String,
-      required: false,
-    },
     copyright: {
       type: String,
       required: false,
     },
-    adminEmail: {
+    copyright2: {
       type: String,
       required: false,
-      default: '',
     },
-    twitterUrl: {
-      type: String,
-      required: false,
-      default: '',
+    googleAdClient: { type: String },
+    // Desktop / Tablet placements
+    desktop: {
+      top: placementSchema,
+      right: placementSchema,
+      left: placementSchema,
     },
-    instagramUrl: {
-      type: String,
-      required: false,
-      default: '',
-    },
-    linkedinUrl: {
-      type: String,
-      required: false,
-      default: '',
-    },
-    contactphone: {
-      type: String,
-      required: false,
-      default: '',
-    },
-    contactemail: {
-      type: String,
-      required: false,
-      default: '',
-    },
-    contactaddress: {
-      type: String,
-      required: false,
-      default: '',
-    },
-    auctionDate: {
-      type: Date,
-      required: false,
-      default: '',
-    },
-    pauseTime: {
-      type: Date,
-      required: false,
-      default: '',
-    },
-    pauseStatus: {
-      type: Boolean,
-      required: false,
-      default: '',
+
+    // Mobile placements
+    mobile: {
+      top: placementSchema,
+      middle: placementSchema,
+      bottom: placementSchema,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-const Settings = mongoose.model('setting', settingsSchema);
+const Settings = mongoose.model("setting", settingsSchema);
 module.exports = Settings;
