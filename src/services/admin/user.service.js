@@ -169,10 +169,8 @@ const userBlockUnblock = async (id, status) => {
 };
 
 // get number of users
-const getUsersCount = async (role) => {
-  const totalUsers = await User.countDocuments({
-    role
-  });
+const getUsersCount = async (query) => {
+  const totalUsers = await User.countDocuments(query);
   return totalUsers;
 };
 
