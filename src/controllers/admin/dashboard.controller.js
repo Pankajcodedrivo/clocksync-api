@@ -6,11 +6,12 @@ const gameService = require('../../services/game/game.service');
 const getDashboardData = catchAsync(async (req, res, next) => {
   // Fetch all required data concurrently
   const [
-    totalScorekeeper, totalFields, totalGames, totalSubscribeUser, totalUsers
+    totalScorekeeper, totalFields, totalGames, totalAdmin, totalSubscribeUser, totalUsers
   ] = await Promise.all([
     userService.getUsersCount({ role: 'scorekeeper' }),
     fieldService.getFieldCount(),
     gameService.getGameCount(),
+    userService.getUsersCount({ role: 'admin' }),
     userService.getUsersCount({ role: 'scorekeeper', isSubscribedByAdmin: true }),
     userService.getUsersCount({}),
   ]);
@@ -20,6 +21,7 @@ const getDashboardData = catchAsync(async (req, res, next) => {
     totalScorekeeper,
     totalFields,
     totalGames,
+    totalAdmin,
     totalSubscribeUser,
     totalUsers
   });
