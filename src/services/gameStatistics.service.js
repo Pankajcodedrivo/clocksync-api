@@ -101,5 +101,6 @@ module.exports = {
     addGoal,
     addPenalty,
     updateClock,
-    resetGame
+    resetGame,
+    removePenalty
 };
