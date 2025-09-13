@@ -110,6 +110,15 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
     });
 
+    socket.on('removePenalty', async ({ gameId, penaltyId }) => {
+      try {
+        const stats = await GameStatisticsService.removePenalty(gameId, penaltyId);
+        io.to(gameId).emit('penaltyRemoved', stats);
+      } catch (err) {
+        socket.emit('error', err.message);
+      }
+    });
+
     // ✅ Score & stats
     socket.on('setScore', async ({ gameId, team, value }) => {
       try {

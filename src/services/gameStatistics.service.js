@@ -72,6 +72,13 @@ const addPenalty = async (gameId, team, type, playerNo, startTime, minutes, seco
     );
 };
 
+const removePenalty = async (gameId, penaltyId) => {
+    return GameStatistics.findOneAndUpdate(
+        { gameId },
+        { $pull: { penalties: { _id: penaltyId } } }, // remove by Mongo _id
+        { new: true }
+    );
+};
 // Update clock
 const updateClock = async (gameId, updates) => {
     const setData = {};
