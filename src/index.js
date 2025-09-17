@@ -27,7 +27,6 @@ mongoose.connect(config.mongoose.url).then(() => {
   // 🕒 helper: start clock interval
   const startClockInterval = (gameId) => {
     if (activeTimers.has(gameId)) return;
-
     const interval = setInterval(async () => {
       const g = await GameStatisticsService.getStatsByGameId(gameId);
       if (!g || !g.clock.running) return;
@@ -147,9 +146,9 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
     });
 
-    socket.on('addGoal', async ({ gameId, team, playerNo, minute }) => {
+    socket.on('addGoal', async ({ gameId, team, playerNo, minute, second }) => {
       try {
-        const stats = await GameStatisticsService.addGoal(gameId, team, playerNo, minute);
+        const stats = await GameStatisticsService.addGoal(gameId, team, playerNo, minute, second);
         io.to(gameId).emit('goalAdded', stats);
       } catch (err) {
         socket.emit('error', err.message);

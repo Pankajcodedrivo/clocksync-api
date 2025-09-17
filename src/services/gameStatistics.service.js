@@ -52,8 +52,8 @@ const setTeamStat = async (gameId, team, field, value) => {
 };
 
 // Add goal (timeline only)
-const addGoal = async (gameId, team, playerNo, minute, time) => {
-    const goal = { team, playerNo, minute, time };
+const addGoal = async (gameId, team, playerNo, minute, second) => {
+    const goal = { team, playerNo, minute, second };
 
     return GameStatistics.findOneAndUpdate(
         { gameId },
