@@ -5,10 +5,24 @@ const gameStatisticsService = require('../../services/gameStatistics.service');
 
 // Create Game
 const createGame = catchAsync(async (req, res) => {
-  const game = await service.createGame(req.body);
+  // Extract file paths if provided
+  const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.path || null;
+  const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.path || null;
+
+  // Merge file paths into game data
+  const gameData = {
+    ...req.body,
+    homeTeamLogo,
+    awayTeamLogo
+  };
+
+  const game = await service.createGame(gameData);
   gameStatisticsService.createGameStatistics(game._id);
 
-  res.status(201).json({ message: 'Game created successfully', game });
+  res.status(201).json({
+    message: 'Game created successfully',
+    game
+  });
 });
 
 // List Games
@@ -27,7 +41,19 @@ const listGames = catchAsync(async (req, res) => {
 // Update Game
 const updateGame = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const updatedGame = await service.updateGame(id, req.body);
+
+  // Extract file paths if new files are uploaded
+  const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.path;
+  const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.path;
+
+  // Build update data (merge body + new logos if provided)
+  const updateData = {
+    ...req.body,
+    ...(homeTeamLogo && { homeTeamLogo }),
+    ...(awayTeamLogo && { awayTeamLogo }),
+  };
+
+  const updatedGame = await service.updateGame(id, updateData);
   if (!updatedGame) throw new ApiError(404, 'Game not found');
 
   res.status(200).json({
