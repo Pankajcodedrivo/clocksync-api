@@ -11,11 +11,11 @@ const validator = require('express-joi-validation').createValidator({
 
 router.use(auth(['admin', 'scorekeeper']));
 
-router.post('/create', upload.single([
+router.post('/create', upload.fields([
     { name: "homeTeamLogo", maxCount: 1 },
     { name: "awayTeamLogo", maxCount: 1 },
 ]), validator.body(validationSchema.createGame), controller.createGame);
-router.patch('/update/:id', upload.single([
+router.patch('/update/:id', upload.fields([
     { name: "homeTeamLogo", maxCount: 1 },
     { name: "awayTeamLogo", maxCount: 1 },
 ]), validator.params(validationSchema.singleId), validator.body(validationSchema.createGame), controller.updateGame);
