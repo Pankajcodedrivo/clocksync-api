@@ -6,6 +6,7 @@ const gameStatisticsService = require('../../services/gameStatistics.service');
 // Create Game
 const createGame = catchAsync(async (req, res) => {
   // Extract file paths if provided
+  console.log(req.files);
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.path || null;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.path || null;
 
