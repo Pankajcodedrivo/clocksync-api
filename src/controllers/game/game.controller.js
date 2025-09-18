@@ -7,8 +7,8 @@ const gameStatisticsService = require('../../services/gameStatistics.service');
 const createGame = catchAsync(async (req, res) => {
   // Extract file paths if provided
   console.log(req.files);
-  const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.path || null;
-  const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.path || null;
+  const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location || null;
+  const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location || null;
 
   // Merge file paths into game data
   const gameData = {
@@ -44,8 +44,8 @@ const updateGame = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   // Extract file paths if new files are uploaded
-  const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.path;
-  const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.path;
+  const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location;
+  const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location;
 
   // Build update data (merge body + new logos if provided)
   const updateData = {
