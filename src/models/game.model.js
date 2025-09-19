@@ -16,6 +16,10 @@ const GameSchema = new mongoose.Schema({
     endDateTime: {
         type: Date,
     },
+    endGame: {
+        type: Boolean,
+        default: false, // automatically set true after endDateTime OR by admin
+    },
     assignUserId: {
         type: mongoose.Types.ObjectId,
         ref: User,
