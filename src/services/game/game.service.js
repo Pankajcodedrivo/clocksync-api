@@ -99,8 +99,16 @@ const deleteGameById = async (id) => {
 };
 
 // ✅ Get game by field
-const getGameByFieldId = async (id) => {
-  return Game.findOne({ fieldId: id }).sort({ startDateTime: 1 });
+const getGameByFieldId = async (fieldId) => {
+  const now = new Date();
+
+  // Find game that is currently active
+  return Game.findOne({
+    fieldId,
+    startDateTime: { $lte: now },
+    endDateTime: { $gte: now },
+    endGame: false,
+  }).sort({ startDateTime: 1 });
 };
 
 // ✅ Count games
