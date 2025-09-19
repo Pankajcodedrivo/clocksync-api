@@ -63,8 +63,8 @@ const addGoal = async (gameId, team, playerNo, minute, second) => {
 };
 
 // Add penalty (timeline only)
-const addPenalty = async (gameId, team, type, playerNo, startTime, minutes, seconds) => {
-    const penalty = { team, type, playerNo, startTime, minutes, seconds };
+const addPenalty = async (gameId, team, type, playerNo, minutes, seconds) => {
+    const penalty = { team, type, playerNo, minutes, seconds };
     return GameStatistics.findOneAndUpdate(
         { gameId },
         { $push: { penalties: penalty } },
