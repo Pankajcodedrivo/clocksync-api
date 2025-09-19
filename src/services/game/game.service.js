@@ -1,26 +1,34 @@
 const Game = require('../../models/game.model');
 
-// Create new Game
+// ✅ Create new Game
 const createGame = async (data) => {
   return Game.create(data);
 };
 
-// Find Game by id
+// ✅ Find Game by id
 const getByGameId = async (id) => {
   return Game.findById(id).populate('fieldId').populate('assignUserId');
 };
 
-// Find Game by id
+// ✅ Find Game by id and assigned user
 const getGameByIdAndUserId = async (_id, assignUserId) => {
   return Game.findOne({ _id, assignUserId });
 };
 
-// Update Game
+// ✅ Update Game (prevent endDateTime update after endGame=true)
 const updateGame = async (id, data) => {
-  return Game.findByIdAndUpdate(id, { $set: data }, { new: true });
+  const game = await Game.findById(id);
+  if (!game) throw new Error('Game not found');
+
+  if (game.endGame && data.endDateTime) {
+    throw new Error('Cannot update endDateTime after game has ended.');
+  }
+
+  Object.assign(game, data);
+  return game.save();
 };
 
-// List all games with pagination + search
+// ✅ List all games with pagination + search
 const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
   const skip = (page - 1) * limit;
 
@@ -32,7 +40,7 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
   const pipeline = [
     {
       $lookup: {
-        from: "fields",               // collection name for fields
+        from: "fields",
         localField: "fieldId",
         foreignField: "_id",
         as: "field",
@@ -41,7 +49,7 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
     { $unwind: { path: "$field", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
-        from: "users",                // collection name for users
+        from: "users",
         localField: "assignUserId",
         foreignField: "_id",
         as: "assignedUser",
@@ -84,28 +92,68 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
     games,
   };
 };
-// Delete Game
+
+// ✅ Delete Game
 const deleteGameById = async (id) => {
   return Game.findByIdAndDelete(id);
 };
 
+// ✅ Get game by field
 const getGameByFieldId = async (id) => {
-  return Game.findOne({ fieldId: id })
-    .sort({ startDateTime: 1 });
+  return Game.findOne({ fieldId: id }).sort({ startDateTime: 1 });
 };
 
+// ✅ Count games
 const getGameCount = async () => {
-  const totalGames = await Game.countDocuments();
-  return totalGames;
+  return Game.countDocuments();
+};
+
+// ✅ Auto end games (cron job)
+const autoEndGames = async (io) => {
+  const now = new Date();
+  const gamesToEnd = await Game.find({
+    endDateTime: { $lte: now },
+    endGame: false,
+  });
+
+  for (const game of gamesToEnd) {
+    game.endGame = true;
+    await game.save();
+
+    if (io) {
+      io.to(game._id.toString()).emit('gameEnded', {
+        gameId: game._id,
+        message: 'Game has automatically ended',
+      });
+    }
+  }
+
+  return gamesToEnd;
+};
+
+// ✅ Manual end game (admin)
+const endGameManually = async (id) => {
+  const game = await Game.findById(id);
+  if (!game) throw new Error('Game not found');
+
+  if (game.endGame) {
+    throw new Error('Game already ended');
+  }
+
+  game.endGame = true;
+  await game.save();
+  return game;
 };
 
 module.exports = {
   createGame,
   getByGameId,
+  getGameByIdAndUserId,
   updateGame,
   listGames,
   deleteGameById,
   getGameByFieldId,
-  getGameByIdAndUserId,
-  getGameCount
+  getGameCount,
+  autoEndGames,
+  endGameManually,
 };

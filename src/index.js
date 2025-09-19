@@ -4,9 +4,9 @@ const mongoose = require('mongoose');
 const socketIo = require('socket.io');
 const logger = require('./config/logger');
 const config = require('./config/config');
-
+const cron = require('node-cron');
 const GameStatisticsService = require('./services/gameStatistics.service');
-
+const GameService = require('./services/game/game.service');
 let io, server;
 const activeTimers = new Map(); // keep intervals by gameId
 
@@ -128,6 +128,17 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
     });
 
+    socket.on('gameEnded', async ({ gameId }) => {
+      try {
+        const stats = await GameService.endGameManually(gameId);
+        io.to(game._id.toString()).emit('gameEnded', {
+          message: 'Game manually ended by admin',
+        });
+      } catch (err) {
+        socket.emit('error', err.message);
+      }
+    });
+
     // ✅ Quater
     socket.on('setQuater', async ({ gameId, quarter }) => {
       try {
@@ -166,6 +177,18 @@ mongoose.connect(config.mongoose.url).then(() => {
 
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.id}`);
+    });
+
+    cron.schedule('* * * * *', async () => {
+      try {
+        console.log('⏰ Running autoEndGames cron...');
+        const ended = await GameService.autoEndGames(io);
+        if (ended.length > 0) {
+          console.log(`✅ Auto-ended ${ended.length} games`);
+        }
+      } catch (err) {
+        console.error('❌ Error in autoEndGames:', err.message);
+      }
     });
   });
 
