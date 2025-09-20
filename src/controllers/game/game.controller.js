@@ -2,7 +2,7 @@ const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/game/game.service');
 const gameStatisticsService = require('../../services/gameStatistics.service');
-const DateTime = require("luxon")
+const { DateTime } = require("luxon")
 
 // Create Game
 const createGame = catchAsync(async (req, res) => {
