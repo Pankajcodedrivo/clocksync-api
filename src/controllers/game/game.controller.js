@@ -69,9 +69,8 @@ const updateGame = catchAsync(async (req, res) => {
   // Parse and validate datetimes only if provided
   let startUTC, endUTC;
   if (startDateTime && endDateTime && userTimezone) {
-    console.log(startDateTime);
-    const start = DateTime.fromISO(startDateTime, { zone: userTimezone });
-    const end = DateTime.fromISO(endDateTime, { zone: userTimezone });
+    const start = DateTime.fromFormat(startDateTime, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
+    const end = DateTime.fromFormat(endDateTime, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
 
     console.log(start);
     //if (!start.isValid) throw new ApiError(400, "Invalid startDateTime: " + start.invalidExplanation);
