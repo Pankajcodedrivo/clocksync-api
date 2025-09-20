@@ -142,6 +142,7 @@ const autoEndGames = async (io) => {
 // ✅ Manual end game (admin)
 const endGameManually = async (id) => {
   const game = await Game.findById(id);
+  console.log(game);
   if (!game) throw new Error('Game not found');
 
   if (game.endGame) {

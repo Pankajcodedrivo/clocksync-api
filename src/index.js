@@ -130,6 +130,7 @@ mongoose.connect(config.mongoose.url).then(() => {
 
     socket.on('gameEnded', async ({ gameId }) => {
       try {
+        console.log(gameId);
         const stats = await GameService.endGameManually(gameId);
         io.to(game._id.toString()).emit('gameEnded', {
           message: 'Game manually ended by admin',
