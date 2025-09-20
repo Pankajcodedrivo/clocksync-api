@@ -56,28 +56,44 @@ const listGames = catchAsync(async (req, res) => {
 });
 
 // Update Game
+// ----------------- UPDATE GAME -----------------
 const updateGame = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  // Extract file paths if new files are uploaded
+  // Extract new files if uploaded
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location;
-  const startDateTimeUTC = DateTime.fromISO(req.body.startDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
-  const endDateTimeUTC = DateTime.fromISO(req.body.endDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
-  // Build update data (merge body + new logos if provided)
+
+  const { startDateTime, endDateTime, userTimezone } = req.body;
+
+  // Parse and validate datetimes only if provided
+  let startUTC, endUTC;
+  if (startDateTime && endDateTime && userTimezone) {
+    const start = DateTime.fromISO(startDateTime, { zone: userTimezone });
+    const end = DateTime.fromISO(endDateTime, { zone: userTimezone });
+    console.log(start);
+    if (!start.isValid) throw new ApiError(400, "Invalid startDateTime: " + start.invalidExplanation);
+    if (!end.isValid) throw new ApiError(400, "Invalid endDateTime: " + end.invalidExplanation);
+
+    startUTC = start.toUTC().toJSDate();
+    endUTC = end.toUTC().toJSDate();
+    console.log(startUTC);
+  }
+
+  // Build update data
   const updateData = {
     ...req.body,
-    startDateTime: startDateTimeUTC,
-    endDateTime: endDateTimeUTC,
+    ...(startUTC && { startDateTime: startUTC }),
+    ...(endUTC && { endDateTime: endUTC }),
     ...(homeTeamLogo && { homeTeamLogo }),
     ...(awayTeamLogo && { awayTeamLogo }),
   };
 
   const updatedGame = await service.updateGame(id, updateData);
-  if (!updatedGame) throw new ApiError(404, 'Game not found');
+  if (!updatedGame) throw new ApiError(404, "Game not found");
 
   res.status(200).json({
-    message: 'Game updated successfully',
+    message: "Game updated successfully",
     game: updatedGame,
   });
 });
