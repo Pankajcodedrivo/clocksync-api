@@ -9,24 +9,36 @@ const createGame = catchAsync(async (req, res) => {
   // Extract file paths if provided
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location || null;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location || null;
-  // Convert start/end from field local time -> UTC
-  const startDateTimeUTC = DateTime.fromISO(req.body.startDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
-  const endDateTimeUTC = DateTime.fromISO(req.body.endDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
-  // Merge file paths into game data
+
+  const { startDateTime, endDateTime, userTimezone } = req.body;
+
+  // Parse datetimes using Luxon
+  const start = DateTime.fromISO(startDateTime, { zone: userTimezone });
+  const end = DateTime.fromISO(endDateTime, { zone: userTimezone });
+  console.log(start);
+  if (!start.isValid) throw new ApiError(400, "Invalid startDateTime: " + start.invalidExplanation);
+  if (!end.isValid) throw new ApiError(400, "Invalid endDateTime: " + end.invalidExplanation);
+
+  // Convert to UTC for MongoDB
+  const startUTC = start.toUTC().toJSDate();
+  const endUTC = end.toUTC().toJSDate();
+  console.log(startUTC);
+  // Build game data
   const gameData = {
     ...req.body,
-    startDateTime: startDateTimeUTC,
-    endDateTime: endDateTimeUTC,
+    startDateTime: startUTC,
+    endDateTime: endUTC,
     homeTeamLogo,
-    awayTeamLogo
+    awayTeamLogo,
   };
 
+  // Save game
   const game = await service.createGame(gameData);
-  gameStatisticsService.createGameStatistics(game._id);
+  await gameStatisticsService.createGameStatistics(game._id);
 
   res.status(201).json({
-    message: 'Game created successfully',
-    game
+    message: "Game created successfully",
+    game,
   });
 });
 
