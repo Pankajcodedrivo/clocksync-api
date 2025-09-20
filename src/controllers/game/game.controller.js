@@ -2,7 +2,6 @@ const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/game/game.service');
 const gameStatisticsService = require('../../services/gameStatistics.service');
-const { DateTime } = require("luxon")
 
 // Create Game
 const createGame = catchAsync(async (req, res) => {
@@ -10,35 +9,19 @@ const createGame = catchAsync(async (req, res) => {
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location || null;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location || null;
 
-  const { startDateTime, endDateTime, userTimezone } = req.body;
-
-  // Parse datetimes using Luxon
-  const start = DateTime.fromISO(startDateTime, { zone: userTimezone });
-  const end = DateTime.fromISO(endDateTime, { zone: userTimezone });
-  console.log(start);
-  if (!start.isValid) throw new ApiError(400, "Invalid startDateTime: " + start.invalidExplanation);
-  if (!end.isValid) throw new ApiError(400, "Invalid endDateTime: " + end.invalidExplanation);
-
-  // Convert to UTC for MongoDB
-  const startUTC = start.toUTC().toJSDate();
-  const endUTC = end.toUTC().toJSDate();
-  console.log(startUTC);
-  // Build game data
+  // Merge file paths into game data
   const gameData = {
     ...req.body,
-    startDateTime: startUTC,
-    endDateTime: endUTC,
     homeTeamLogo,
-    awayTeamLogo,
+    awayTeamLogo
   };
 
-  // Save game
   const game = await service.createGame(gameData);
-  await gameStatisticsService.createGameStatistics(game._id);
+  gameStatisticsService.createGameStatistics(game._id);
 
   res.status(201).json({
-    message: "Game created successfully",
-    game,
+    message: 'Game created successfully',
+    game
   });
 });
 
@@ -56,47 +39,25 @@ const listGames = catchAsync(async (req, res) => {
 });
 
 // Update Game
-// ----------------- UPDATE GAME -----------------
 const updateGame = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  // Extract new files if uploaded
+  // Extract file paths if new files are uploaded
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location;
 
-  const { startDateTime, endDateTime, userTimezone } = req.body;
-  console.log(new Date(startDateTime));
-  // Parse and validate datetimes only if provided
-  let startUTC, endUTC;
-  if (startDateTime && endDateTime && userTimezone) {
-    const startStr = String(startDateTime).trim();
-    const endStr = String(endDateTime).trim();
-
-    // Parse local time in user's timezone
-    const start = DateTime.fromFormat(startStr, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
-    const end = DateTime.fromFormat(endStr, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
-    //if (!start.isValid) throw new ApiError(400, "Invalid startDateTime: " + start.invalidExplanation);
-    //if (!end.isValid) throw new ApiError(400, "Invalid endDateTime: " + end.invalidExplanation);
-
-    startUTC = start.toUTC().toJSDate();
-    endUTC = end.toUTC().toJSDate();
-    console.log(startUTC);
-  }
-
-  // Build update data
+  // Build update data (merge body + new logos if provided)
   const updateData = {
     ...req.body,
-    ...(startUTC && { startDateTime: startUTC }),
-    ...(endUTC && { endDateTime: endUTC }),
     ...(homeTeamLogo && { homeTeamLogo }),
     ...(awayTeamLogo && { awayTeamLogo }),
   };
 
   const updatedGame = await service.updateGame(id, updateData);
-  if (!updatedGame) throw new ApiError(404, "Game not found");
+  if (!updatedGame) throw new ApiError(404, 'Game not found');
 
   res.status(200).json({
-    message: "Game updated successfully",
+    message: 'Game updated successfully',
     game: updatedGame,
   });
 });
