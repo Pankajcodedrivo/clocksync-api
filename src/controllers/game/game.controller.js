@@ -2,17 +2,21 @@ const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/game/game.service');
 const gameStatisticsService = require('../../services/gameStatistics.service');
+const DateTime = require("luxon")
 
 // Create Game
 const createGame = catchAsync(async (req, res) => {
   // Extract file paths if provided
-  console.log(req.files);
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location || null;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location || null;
-
+  // Convert start/end from field local time -> UTC
+  const startDateTimeUTC = DateTime.fromISO(req.body.startDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
+  const endDateTimeUTC = DateTime.fromISO(req.body.endDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
   // Merge file paths into game data
   const gameData = {
     ...req.body,
+    startDateTime: startDateTimeUTC,
+    endDateTime: endDateTimeUTC,
     homeTeamLogo,
     awayTeamLogo
   };
@@ -46,10 +50,13 @@ const updateGame = catchAsync(async (req, res) => {
   // Extract file paths if new files are uploaded
   const homeTeamLogo = req.files?.homeTeamLogo?.[0]?.location;
   const awayTeamLogo = req.files?.awayTeamLogo?.[0]?.location;
-
+  const startDateTimeUTC = DateTime.fromISO(req.body.startDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
+  const endDateTimeUTC = DateTime.fromISO(req.body.endDateTime, { zone: req.body.userTimezone }).toUTC().toJSDate();
   // Build update data (merge body + new logos if provided)
   const updateData = {
     ...req.body,
+    startDateTime: startDateTimeUTC,
+    endDateTime: endDateTimeUTC,
     ...(homeTeamLogo && { homeTeamLogo }),
     ...(awayTeamLogo && { awayTeamLogo }),
   };

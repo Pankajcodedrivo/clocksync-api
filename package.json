@@ -45,6 +45,7 @@
     "helmet": "^7.0.0",
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.1",
+    "luxon": "^3.7.2",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.47",
     "mongoose": "^7.8.7",

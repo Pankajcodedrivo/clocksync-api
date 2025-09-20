@@ -60,6 +60,7 @@ const createGame = Joi.object({
             "string.length": "Scorekeeper ID must be a 24-character hex string",
             "string.hex": "Scorekeeper ID must be a valid hex string",
         }),
+    userTimezone: Joi.optional()
 });
 
 
