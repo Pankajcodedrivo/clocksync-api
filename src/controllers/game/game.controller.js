@@ -69,10 +69,12 @@ const updateGame = catchAsync(async (req, res) => {
   // Parse and validate datetimes only if provided
   let startUTC, endUTC;
   if (startDateTime && endDateTime && userTimezone) {
-    const start = DateTime.fromFormat(startDateTime, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
-    const end = DateTime.fromFormat(endDateTime, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
+    const startStr = String(startDateTime).trim();
+    const endStr = String(endDateTime).trim();
 
-    console.log(start);
+    // Parse local time in user's timezone
+    const start = DateTime.fromFormat(startStr, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
+    const end = DateTime.fromFormat(endStr, "yyyy-MM-dd'T'HH:mm", { zone: userTimezone });
     //if (!start.isValid) throw new ApiError(400, "Invalid startDateTime: " + start.invalidExplanation);
     //if (!end.isValid) throw new ApiError(400, "Invalid endDateTime: " + end.invalidExplanation);
 
