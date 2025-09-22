@@ -64,7 +64,23 @@ const addGoal = async (gameId, team, playerNo, minute, second) => {
 
 // Add penalty (timeline only)
 const addPenalty = async (gameId, team, type, playerNo, minutes, seconds) => {
-    const penalty = { team, type, playerNo, minutes, seconds };
+
+    const gameStats = await GameStatistics.findOne({ gameId });
+    if (!gameStats) throw new Error("Game not found");
+
+    const { minutes: clockMin, seconds: clockSec } = gameStats.clock;
+
+    // Build penalty object
+    const penalty = {
+        team,
+        type,
+        playerNo,
+        minutes,
+        seconds,
+        startMinute: clockMin,
+        startSecond: clockSec,
+
+    };
     return GameStatistics.findOneAndUpdate(
         { gameId },
         { $push: { penalties: penalty } },
