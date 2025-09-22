@@ -64,7 +64,7 @@ const JsonWebTokenErrorHandler = (error) => {
 };
 
 const globalErrorHandler = (error, req, res, next) => {
-  console.log(error)
+  console.log(error.message)
   if (error instanceof ApiError) {
     error.statusCode = error.statusCode || 500;
     error.status = error.status || 'error';
