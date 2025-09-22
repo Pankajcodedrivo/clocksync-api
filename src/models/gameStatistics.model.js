@@ -34,7 +34,9 @@ const PenaltySchema = new mongoose.Schema({
     type: { type: String, enum: ['releasable', 'non-releasable'], required: true },
     playerNo: { type: Number, required: true },
     minutes: { type: Number, default: 0 },
-    seconds: { type: Number, default: 0 }
+    seconds: { type: Number, default: 0 },
+    startMinute: { type: Number, required: true },
+    startSecond: { type: Number, required: true },
 }, { _id: true });
 
 // Main schema
