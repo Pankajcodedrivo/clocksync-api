@@ -20,7 +20,7 @@ const updateGame = async (id, data) => {
   const game = await Game.findById(id);
   if (!game) throw new Error('Game not found');
 
-  if (game.endGame && data.endDateTime) {
+  if (game.endGame == true) {
     throw new Error('Cannot update endDateTime after game has ended.');
   }
 
