@@ -64,14 +64,15 @@ const JsonWebTokenErrorHandler = (error) => {
 };
 
 const globalErrorHandler = (error, req, res, next) => {
-  console.log(error.message)
+
   if (error instanceof ApiError) {
     error.statusCode = error.statusCode || 500;
     error.status = error.status || 'error';
+    error.responseMessage = error.message || 'Something went wrong';
   } else {
     error.statusCode = error.statusCode || 500;
     error.status = error.status || 'error';
-    error.responseMessage = error.responseMessage || 'Something went wrong';
+    error.responseMessage = error.responseMessage || error.message || 'Something went wrong';
     if (error.name === 'TokenExpiredError') {
       error.statusCode = 401;
       error.status = 'error';
