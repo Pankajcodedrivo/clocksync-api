@@ -2,6 +2,7 @@ const config = require('../config/config');
 const ApiError = require('../helpers/apiErrorConverter');
 
 const handleDevErrors = (res, error) => {
+  console.log(error);
   const response = {
     status: error.status,
     message: error.responseMessage,
