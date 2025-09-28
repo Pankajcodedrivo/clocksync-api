@@ -37,6 +37,8 @@ app.use(
   cors({
     origin: [
       'https://admin-clocksync.codedrivo.com',
+      'https://admin.clocksynk.com',
+      'https://game.clocksynk.com',
       'https://clocksync.codedrivo.com',
       'http://localhost:5173',
       'http://localhost:5000',
