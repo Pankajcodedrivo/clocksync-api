@@ -13,7 +13,7 @@ const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: config.s3.AWS_S3_BUCKET, // bucket name from env
-    //acl: 'public-read', // or 'private' if using CloudFront with OAI
+    acl: 'public-read', // or 'private' if using CloudFront with OAI
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
       const extension = file.originalname.split('.').pop(); // get file extension
