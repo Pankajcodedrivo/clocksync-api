@@ -100,7 +100,7 @@ const addUser = async (userData) => {
   const user = await User.create(userData);
   await email.sendSGEmail({
     to: userData.email,
-    templateId: "d-311528c1a1714e0492e169456db9b01b",
+    templateId: "d-57526b95011b477796f87e43361a8b5d",
     dynamic_template_data: {
       email: userData.email,
       password: userData.password,
