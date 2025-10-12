@@ -24,8 +24,8 @@ const TeamStatsSchema = new mongoose.Schema({
 const GoalSchema = new mongoose.Schema({
     team: { type: String, enum: ['home', 'away'], required: true },
     playerNo: { type: Number, required: true },
-    minute: { type: Number, required: true },
-    second: { type: Number, required: true },
+    minute: { type: Number, required: true, default: 0 },
+    second: { type: Number, default: 0 },
 }, { _id: false });
 
 // Penalty schema
