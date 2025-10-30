@@ -125,8 +125,8 @@ const getGameByFieldId = async (fieldId) => {
 };
 
 // ✅ Count games
-const getGameCount = async () => {
-  return Game.countDocuments();
+const getGameCount = async (match) => {
+  return Game.countDocuments(match);
 };
 
 // ✅ Auto end games (cron job)

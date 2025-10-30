@@ -15,7 +15,7 @@ const getDashboardData = catchAsync(async (req, res, next) => {
   ] = await Promise.all([
     userService.getUsersCount({ role: 'scorekeeper', ...createdByFilter }),
     fieldService.getFieldCount(req.user),
-    gameService.getGameCount(),
+    gameService.getGameCount(createdByFilter),
     userService.getUsersCount({ role: 'admin', ...createdByFilter }),
     userService.getUsersCount({ role: 'scorekeeper', isSubscribedByAdmin: true, ...createdByFilter }),
     userService.getUsersCount({ role: 'event-director', ...createdByFilter }),

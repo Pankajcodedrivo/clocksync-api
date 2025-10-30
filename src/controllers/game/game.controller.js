@@ -157,9 +157,8 @@ const importGamesFromFile = catchAsync(async (req, res) => {
         awayTeamName: row['Away Team Name']?.trim(),
         fieldName: row['Field Name']?.trim(),
         scorekeeper: row['Scorekeeper Email']?.trim(),
-        startDateTime: row['Game Start Time']?.trim(),
-        endDateTime: row['Game End Time']?.trim(),
-        headerName: row['Game Title / Header Name']?.trim() || null,
+        startDateTime: row['Game Start Time'],
+        endDateTime: row['Game End Time'],
       };
       const fieldId = await ensureField(item.fieldName, req, fieldMap, createdFields);
       const assignUserId = await ensureUser(item.scorekeeper, req, userMap, createdUsers);
