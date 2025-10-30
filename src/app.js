@@ -20,7 +20,8 @@ app.use(morgan.successHandler);
 app.use(morgan.errorHandler);
 
 // only content type application/json allowed
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // set security headers automatically
 app.use(helmet());
