@@ -97,6 +97,45 @@ const deleteGame = catchAsync(async (req, res) => {
   res.status(200).json({ message: 'Game deleted successfully' });
 });
 
+const parseExcelDate = (value) => {
+  if (value == null || value === "") return null;
+
+  // 🧮 Case 1: Excel serial number (e.g., 45961.5833)
+  if (typeof value === "number") {
+    const excelBaseDate = new Date(Date.UTC(1899, 11, 30)); // Excel epoch base
+    return new Date(excelBaseDate.getTime() + value * 86400000);
+  }
+
+  // 📅 Case 2: String-based date (ISO or formatted)
+  if (typeof value === "string") {
+    // Try direct parse
+    const parsed = Date.parse(value);
+    if (!isNaN(parsed)) return new Date(parsed);
+
+    // Try formats like 03/09/2025 14:00 or 9-3-25
+    const match = value.match(
+      /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/
+    );
+    if (match) {
+      let [_, mm, dd, yyyy, hh = "0", mi = "0"] = match;
+
+      // Handle DD/MM vs MM/DD confusion
+      if (parseInt(mm) > 12) [mm, dd] = [dd, mm];
+      if (yyyy.length === 2) yyyy = "20" + yyyy;
+
+      return new Date(
+        `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T${hh.padStart(
+          2,
+          "0"
+        )}:${mi.padStart(2, "0")}:00`
+      );
+    }
+  }
+
+  // ❌ Not a valid date
+  return null;
+}
+
 /**
  * @desc Import games from uploaded Excel or CSV file.
  * Auto-creates fields and scorekeeper users if not found in DB.
@@ -104,9 +143,11 @@ const deleteGame = catchAsync(async (req, res) => {
 const importGamesFromFile = catchAsync(async (req, res) => {
   try {
     if (!req.file) throw new ApiError(400, 'No file uploaded');
+
     const ext = path.extname(req.file.originalname).toLowerCase();
     let data = [];
-    // 1️⃣ Parse Excel or CSV file
+
+    // Parse Excel/CSV
     if (ext === '.xlsx' || ext === '.xls') {
       const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
@@ -125,63 +166,70 @@ const importGamesFromFile = catchAsync(async (req, res) => {
     } else {
       throw new ApiError(400, 'Invalid file type (only .xlsx or .csv allowed)');
     }
-    if (!data.length) {
-      throw new ApiError(400, 'No data found in file');
-    }
-    // 2️⃣ Fetch fields and users based on role
+
+    if (!data.length) throw new ApiError(400, 'No data found in file');
+
+    // Fetch fields/users based on role
     const match = {};
     const usermatch = { role: 'scorekeeper' };
     if (req.user.role === 'event-director') {
       match.createdBy = req.user._id;
       usermatch.createdBy = req.user._id;
     }
+
     const [allFields, allUsers] = await Promise.all([
       fieldService.getAllField(match),
       userService.getAllUser(usermatch),
     ]);
-    // Build quick lookup maps
+
+    // Build lookup maps
     const fieldMap = {};
     const userMap = {};
     allFields.forEach((f) => (fieldMap[f.name?.toLowerCase()] = f._id));
     allUsers.forEach((u) => (userMap[u.email?.toLowerCase()] = u._id));
+
     const createdFields = [];
     const createdUsers = [];
-    // 3️⃣ Transform rows into Game objects
-    const games = [];
-    for (const row of data) {
-      console.log("📘 Excel row:", row);
 
-      // Normalize keys from Excel headers
+    // Transform rows
+    const games = [];
+
+    for (const row of data) {
+      console.log('📘 Excel row:', row);
+
       const item = {
         homeTeamName: row['Home Team Name']?.trim(),
         awayTeamName: row['Away Team Name']?.trim(),
         fieldName: row['Field Name']?.trim(),
         scorekeeper: row['Scorekeeper Email']?.trim(),
-        startDateTime: row['Game Start Time'],
-        endDateTime: row['Game End Time'],
+        startDateTime: parseExcelDate(row['Game Start Time']),
+        endDateTime: parseExcelDate(row['Game End Time']),
       };
+
       const fieldId = await ensureField(item.fieldName, req, fieldMap, createdFields);
       const assignUserId = await ensureUser(item.scorekeeper, req, userMap, createdUsers);
+
       games.push({
         homeTeamName: item.homeTeamName,
         awayTeamName: item.awayTeamName,
         fieldId,
         assignUserId,
-        startDateTime: item.startDateTime ? new Date(item.startDateTime) : null,
-        endDateTime: item.endDateTime ? new Date(item.endDateTime) : null,
+        startDateTime: item.startDateTime,
+        endDateTime: item.endDateTime,
         createdBy: req.user._id,
       });
     }
-    // 4️⃣ Insert into MongoDB
+
+    // Insert into MongoDB
     await service.insertMany(games);
-    // 5️⃣ Respond success
+
     res.status(200).json({
       success: true,
       message: '✅ Games imported successfully',
       inserted: games.length,
     });
   } catch (error) {
-    console.error('Import error:', error);
+    console.error('❌ Import error:', error);
     throw new ApiError(500, `Import failed: ${error.message}`);
   }
 });
