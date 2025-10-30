@@ -23,7 +23,11 @@ const GameSchema = new mongoose.Schema({
     assignUserId: {
         type: mongoose.Types.ObjectId,
         ref: User,
-    }
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: User,
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model('game', GameSchema);

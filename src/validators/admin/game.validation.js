@@ -49,8 +49,8 @@ const createGame = Joi.object({
     endDateTime: Joi.date()
         .required()
         .messages({
-            "date.base": "Start date must be a valid date",
-            "any.required": "Start date is required",
+            "date.base": "End date must be a valid date",
+            "any.required": "End date is required",
         }),
     assignUserId: Joi.string()
         .length(24)

@@ -28,6 +28,7 @@ const listUser = catchAsync(async (req, res, next) => {
         limit,
         page,
         search,
+        req.user.role
     );
     res.status(200).send({ status: 200, users });
 });

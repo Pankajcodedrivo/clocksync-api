@@ -8,7 +8,7 @@ const validator = require('express-joi-validation').createValidator({
 
 const upload = require('../../middlewares/multer.middleware');
 
-router.use(auth(['admin', 'scorekeeper']));
+router.use(auth(['admin', 'scorekeeper', 'event-director']));
 
 router.patch(
   '/image-update',

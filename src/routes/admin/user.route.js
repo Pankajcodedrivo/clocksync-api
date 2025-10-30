@@ -7,13 +7,19 @@ const validator = require('express-joi-validation').createValidator({
   passError: true,
 });
 
-router.use(auth('admin'));
+router.use(auth(['admin', 'scorekeeper', 'event-director']));
 
 router.post(
   '/user-list/:page/:limit',
   validator.params(validationSchema.pagination),
   controller.listUser,
 );
+
+router.get(
+  '/eventdirector/all',
+  controller.listEventDirector,
+);
+
 
 router.post(
   '/add-user',

@@ -1,5 +1,5 @@
 const Game = require('../../models/game.model');
-
+const mongoose = require('mongoose');
 // ✅ Create new Game
 const createGame = async (data) => {
   return Game.create(data);
@@ -36,7 +36,9 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
   if (user?.role === "scorekeeper") {
     match.assignUserId = user._id;
   }
-
+  if (user.role === 'event-director' && user._id) {
+    match.createdBy = new mongoose.Types.ObjectId(user._id);
+  }
   const pipeline = [
     {
       $lookup: {
@@ -56,6 +58,17 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
       },
     },
     { $unwind: { path: "$assignedUser", preserveNullAndEmptyArrays: true } },
+
+    // ✅ Lookup for createdBy user
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdByUser",
+      },
+    },
+    { $unwind: { path: "$createdByUser", preserveNullAndEmptyArrays: true } },
     { $match: match },
   ];
 
@@ -153,6 +166,9 @@ const endGameManually = async (id) => {
   return game;
 };
 
+const insertMany = async (data) => {
+  return Game.insertMany(data);
+}
 module.exports = {
   createGame,
   getByGameId,
@@ -164,4 +180,5 @@ module.exports = {
   getGameCount,
   autoEndGames,
   endGameManually,
+  insertMany,
 };

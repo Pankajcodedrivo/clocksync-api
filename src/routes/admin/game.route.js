@@ -5,11 +5,12 @@ const userController = require('../../controllers/user/user.controller');
 const auth = require('../../middlewares/auth.middleware');
 const validationSchema = require('../../validators/admin/game.validation');
 const upload = require('../../middlewares/multer.middleware');
+const uploadMemory = require('../../middlewares/multerMemory.middleware.js');
 const validator = require('express-joi-validation').createValidator({
     passError: true,
 });
 
-router.use(auth(['admin', 'scorekeeper']));
+router.use(auth(['admin', 'scorekeeper', 'event-director']));
 
 router.post('/create', upload.fields([
     { name: "homeTeamLogo", maxCount: 1 },
@@ -24,4 +25,11 @@ router.get('/detail/:id', validator.params(validationSchema.singleId), controlle
 router.delete('/delete/:id', validator.params(validationSchema.singleId), controller.deleteGame);
 router.get('/getallfield', fieldController.getAllField);
 router.get('/getallScorekeeper', userController.getAllScoreKeeper);
+// 📤 🧾 Import games via Excel or CSV file
+router.post(
+    '/import',
+    uploadMemory.single('file'), // use same field name as in frontend FormData.append('file', uploadFile)
+    controller.importGamesFromFile
+);
+
 module.exports = router;

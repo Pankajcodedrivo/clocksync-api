@@ -14,6 +14,7 @@ const adminField = require('./admin/field.route');
 const adminSetting = require('./admin/setting.route');
 const adminDashboard = require('./admin/dashboard.route');
 const adminGame = require('./admin/game.route');
+const adminEvent = require('./admin/event.route');
 // all routes
 router.use('/auth', authRouter);
 router.use('/profile', Profile);
@@ -26,6 +27,7 @@ router.use('/game', game);
 router.use('/admin', adminAuth);
 router.use('/admin/field', adminField);
 router.use('/admin/game', adminGame);
+router.use('/admin/event', adminEvent);
 router.use('/admin/dashboard', adminDashboard);
 router.use('/admin/profile', adminProfile);
 router.use('/admin/user-management', userManagement);

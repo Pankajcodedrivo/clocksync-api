@@ -7,7 +7,7 @@ const validator = require('express-joi-validation').createValidator({
 });
 router.post("/code", auth(['scorekeeper']), controller.generateCode);
 router.post(
-    '/all-scorekeeper/:page/:limit', auth(['admin']),
+    '/all-scorekeeper/:page/:limit', auth(['admin', 'event-director']),
     validator.params(validationSchema.pagination),
     controller.listUser,
 );

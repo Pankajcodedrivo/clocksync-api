@@ -1,8 +1,6 @@
 const User = require('../../models/user.model');
 const ApiError = require('../../helpers/apiErrorConverter');
-
 const mongoose = require('mongoose');
-const { http } = require('winston');
 const email = require('../email/email.service');
 const config = require('../../config/config');
 
@@ -12,6 +10,7 @@ const userListFind = async (
   page = 1,
   searchQuery = '',
   role = '',
+  userrole = '',
 ) => {
   try {
     const query = {};
@@ -27,6 +26,9 @@ const userListFind = async (
     if (role) {
       query.role = role;
     }
+    if (userrole !== 'admin' && id) {
+      query.createdBy = new mongoose.Types.ObjectId(id);
+    }
 
     if (id) {
       query._id = { $ne: id };
@@ -36,7 +38,8 @@ const userListFind = async (
     const users = await User.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate('createdBy', 'fullName email');
 
     const userList = {
       users,
@@ -52,11 +55,21 @@ const userListFind = async (
   }
 };
 
+const listEventDirector = async (role) => {
+  try {
+    return await User.find({ role })
+      .sort({ createdAt: -1 });
+  } catch (e) {
+    throw new ApiError(e.message, 404);
+  }
+}
+
 const userListFindBySubscibedAdmin = async (
   id,
   limit = 10,
   page = 1,
   searchQuery = '',
+  role
 ) => {
   try {
     const query = {};
@@ -74,6 +87,9 @@ const userListFindBySubscibedAdmin = async (
 
     if (id) {
       query._id = { $ne: id };
+    }
+    if (role === "event-director") {
+      query.createdBy = id
     }
     const skip = (page - 1) * limit;
     const totalItems = await User.find(query).countDocuments();
@@ -113,6 +129,12 @@ const addUser = async (userData) => {
 const getUserById = (id) => {
   return User.findById(id);
 };
+
+// Get All Fields
+const getAllUser = async (match = {}) => {
+  return User.find(match);
+};
+
 
 const editUser = async (id) => {
   try {
@@ -222,5 +244,7 @@ module.exports = {
   getUsersCount,
   userInvitations,
   addamount,
-  userListFindBySubscibedAdmin
+  userListFindBySubscibedAdmin,
+  listEventDirector,
+  getAllUser
 };

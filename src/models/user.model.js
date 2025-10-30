@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'scorekeeper'],
+      enum: ['admin', 'scorekeeper', 'event-director'],
       default: 'admin',
     },
     firstTimeLogin: {
@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -53,6 +58,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ email: 'text' });
+userSchema.index({ createdBy: 1, role: 1 });
 
 // add plugin that converts mongoose to json
 userSchema.plugin(toJSON);

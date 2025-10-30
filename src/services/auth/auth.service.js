@@ -102,8 +102,8 @@ const updateUser = async (id, data) => {
   return updatedUser;
 };
 
-const getAllScoreKeeper = async () => {
-  return User.find({ role: "scorekeeper" }).select("fullName");
+const getAllScoreKeeper = async (match) => {
+  return User.find(match).select("fullName");
 }
 
 const listUser = async (currentUserId) => {

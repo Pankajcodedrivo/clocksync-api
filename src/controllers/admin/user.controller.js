@@ -11,17 +11,26 @@ const listUser = catchAsync(async (req, res, next) => {
     page,
     search,
     role,
+    req.user.role
   );
   res.status(200).send({ status: 200, users });
 });
+
+const listEventDirector = catchAsync(async (req, res, next) => {
+  const eventDirectors = await service.listEventDirector('event-director');
+  res.status(200).send({ status: 200, eventDirectors });
+})
 
 const addUser = catchAsync(async (req, res) => {
   const data = { ...req.body };
   if (req.file && req.file.location) {
     data.profileimageurl = req.file.location;
   }
-  if (data.role === "scorekeeper") {
+  if (data.role === "scorekeeper" || data.role === "event-director") {
     data.firstTimeLogin = true;
+  }
+  if (req.user && req.user._id) {
+    data.createdBy = req.user._id;
   }
   const userData = await service.addUser(data);
   res.status(200).json({
@@ -105,4 +114,5 @@ module.exports = {
   userBlockUnblock,
   getInvitations,
   addamount,
+  listEventDirector
 };

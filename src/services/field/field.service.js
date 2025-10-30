@@ -2,6 +2,7 @@ const Field = require('../../models/field.model');
 const ApiError = require('../../helpers/apiErrorConverter');
 const gameService = require('../game/game.service');
 const gameStatisticsService = require('../gameStatistics.service');
+const mongoose = require('mongoose')
 // Create new Field
 const createField = async (data) => {
   return Field.create(data);
@@ -13,8 +14,8 @@ const getByFieldId = async (id) => {
 };
 
 // Get All Fields
-const getAllField = async () => {
-  return Field.find();
+const getAllField = async (match = {}) => {
+  return Field.find(match);
 };
 
 
@@ -28,7 +29,7 @@ const updateField = async (id, data) => {
   return updatedField;
 };
 // List all fields with optional pagination + search
-const listFields = async ({ page = 1, limit = 10, search = "" }) => {
+const listFields = async ({ user, page = 1, limit = 10, search = "" }) => {
   const skip = (page - 1) * limit;
 
   // Build query condition
@@ -40,12 +41,15 @@ const listFields = async ({ page = 1, limit = 10, search = "" }) => {
       ]
     };
   }
-
+  if (user.role !== 'admin' && user._id) {
+    query.createdBy = new mongoose.Types.ObjectId(user._id);
+  }
   const total = await Field.countDocuments(query);
   const fields = await Field.find(query)
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .populate('createdBy', 'fullName email');
 
   return {
     total,
@@ -78,8 +82,12 @@ const getFieldBySlug = async (slug) => {
   }
 }
 
-const getFieldCount = async () => {
-  const totalFields = await Field.countDocuments();
+const getFieldCount = async (user) => {
+  let query = {};
+  if (user.role !== 'admin' && user._id) {
+    query.createdBy = new mongoose.Types.ObjectId(user._id);
+  }
+  const totalFields = await Field.countDocuments(query);
   return totalFields;
 };
 module.exports = {

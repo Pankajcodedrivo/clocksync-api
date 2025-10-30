@@ -17,8 +17,11 @@ const search = catchAsync(async (req, res) => {
 });
 
 const getAllScoreKeeper = catchAsync(async (req, res) => {
-
-  const scoreKeeper = await authService.getAllScoreKeeper();
+  let match = { role: "scorekeeper" }
+  if (req.user.role === 'event-director') {
+    match.createdBy = req.user._id
+  }
+  const scoreKeeper = await authService.getAllScoreKeeper(match);
   res.status(200).send({ scoreKeeper });
 });
 
