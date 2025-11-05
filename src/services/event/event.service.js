@@ -105,6 +105,10 @@ const getEventCount = async () => {
   return Event.countDocuments();
 };
 
+// ✅ Count events
+const getEventByMatch = async (match) => {
+  return Event.find(match);
+};
 
 module.exports = {
   createEvent,
@@ -115,4 +119,5 @@ module.exports = {
   deleteEventById,
   getEventByFieldId,
   getEventCount,
+  getEventByMatch
 };

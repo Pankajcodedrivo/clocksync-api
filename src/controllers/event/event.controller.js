@@ -82,11 +82,38 @@ const deleteEvent = catchAsync(async (req, res) => {
   res.status(200).json({ message: 'Event deleted successfully' });
 });
 
+
+const getEventListByEventDirector = catchAsync(async (req, res) => {
+  // ✅ Check role
+  if (req.user.role !== 'event-director') {
+    return res.status(403).json({
+      status: 403,
+      message: "Only event directors can access this data"
+    });
+  }
+
+  // ✅ Define today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // ✅ Fetch all events assigned to the director where endDate >= today
+  const events = await eventService.getEventByMatch({
+    assignUserId: req.user._id,
+    endDate: { $gte: today }
+  });
+
+  return res.status(200).json({
+    status: 200,
+    events
+  });
+});
+
 module.exports = {
   createEvent,
   updateEvent,
   getEventById,
   deleteEvent,
   listEvents,
+  getEventListByEventDirector,
   getEventByIdAndUserId
 };

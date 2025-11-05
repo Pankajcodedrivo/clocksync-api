@@ -46,11 +46,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
+    createdBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: [],
+      },
+    ],
   },
   {
     timestamps: true,

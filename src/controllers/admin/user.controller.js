@@ -22,21 +22,44 @@ const listEventDirector = catchAsync(async (req, res, next) => {
 })
 
 const addUser = catchAsync(async (req, res) => {
-  const data = { ...req.body };
-  if (req.file && req.file.location) {
-    data.profileimageurl = req.file.location;
+  const creatorId = req.user?._id;
+  const { role, email, ...rest } = req.body;
+
+  const data = {
+    ...rest,
+    email: email?.toLowerCase(),
+    role,
+    firstTimeLogin: ['scorekeeper', 'event-director'].includes(role),
+    createdBy: creatorId ? [creatorId] : [],
+    profileimageurl: req.file?.location || '',
+  };
+
+  // ✅ Handle scorekeeper separately (shared account logic)
+  if (role === 'scorekeeper' && email) {
+    const existingUser = await service.getUserByEmail(data.email);
+
+    if (existingUser) {
+      // Add creator if not already linked
+      if (!existingUser.createdBy.some(id => id.equals(creatorId))) {
+        existingUser.createdBy.push(creatorId);
+        await existingUser.save();
+      }
+
+      return res.status(200).json({
+        status: 200,
+        message: 'User added successfully',
+        userdata: existingUser,
+      });
+    }
   }
-  if (data.role === "scorekeeper" || data.role === "event-director") {
-    data.firstTimeLogin = true;
-  }
-  if (req.user && req.user._id) {
-    data.createdBy = req.user._id;
-  }
-  const userData = await service.addUser(data);
+
+  // ✅ Create new user
+  const user = await service.addUser(data);
+
   res.status(200).json({
     status: 200,
     message: 'User added successfully',
-    userdata: userData,
+    userdata: user,
   });
 });
 

@@ -5,10 +5,10 @@ const fieldService = require('../../services/field/field.service');
 const userService = require('../../services/admin/user.service');
 const gameStatisticsService = require('../../services/gameStatistics.service');
 const path = require('path');
-const fs = require('fs');
 const XLSX = require('xlsx');
 const csv = require('csv-parser');
 const { ensureField, ensureUser } = require('../../helpers/ensureHelpers');
+const moment = require("moment-timezone");
 // Create Game
 const createGame = catchAsync(async (req, res) => {
   // Extract file paths if provided
@@ -23,7 +23,6 @@ const createGame = catchAsync(async (req, res) => {
     awayTeamLogo,
     createdBy: req.user._id,
   };
-
   const game = await service.createGame(gameData);
   gameStatisticsService.createGameStatistics(game._id);
 
@@ -38,7 +37,8 @@ const listGames = catchAsync(async (req, res) => {
   const page = parseInt(req.params.page) || 1;
   const limit = parseInt(req.params.limit) || 10;
   const search = req.query.search || "";
-  const result = await service.listGames({ page, limit, search, user: req.user });
+  const eventId = req.query.eventId || "";
+  const result = await service.listGames({ page, limit, search, user: req.user, eventId });
 
   res.status(200).json({
     success: true,
@@ -97,6 +97,38 @@ const deleteGame = catchAsync(async (req, res) => {
   res.status(200).json({ message: 'Game deleted successfully' });
 });
 
+/**
+ * Converts Excel/CSV date to a UTC Date object based on user timezone.
+ */
+const parseDateWithTimezone = (value, userTimeZone = "UTC") => {
+  const parsed = parseExcelDate(value);
+  console.log(parsed);
+  if (!parsed) return null;
+
+  // 🧩 Extract date parts as if Excel meant them in local time
+  const localMoment = moment.tz(
+    {
+      year: parsed.getUTCFullYear(),
+      month: parsed.getUTCMonth(),
+      day: parsed.getUTCDate(),
+      hour: parsed.getUTCHours(),
+      minute: parsed.getUTCMinutes(),
+      second: parsed.getUTCSeconds(),
+    },
+    userTimeZone
+  );
+
+  const utcDate = localMoment.utc().toDate();
+
+  console.log(
+    `🕒 Local interpreted (${userTimeZone}):`,
+    localMoment.format(),
+    "→ UTC:",
+    utcDate.toISOString()
+  );
+
+  return utcDate;
+};
 const parseExcelDate = (value) => {
   if (value == null || value === "") return null;
 
@@ -193,7 +225,7 @@ const importGamesFromFile = catchAsync(async (req, res) => {
 
     // Transform rows
     const games = [];
-
+    const userTimeZone = req.body.timeZone
     for (const row of data) {
       console.log('📘 Excel row:', row);
 
@@ -202,8 +234,7 @@ const importGamesFromFile = catchAsync(async (req, res) => {
         awayTeamName: row['Away Team Name']?.trim(),
         fieldName: row['Field Name']?.trim(),
         scorekeeper: row['Scorekeeper Email']?.trim(),
-        startDateTime: parseExcelDate(row['Game Start Time']),
-        endDateTime: parseExcelDate(row['Game End Time']),
+        startDateTime: parseDateWithTimezone(row['Game Start Time'], userTimeZone),
       };
 
       const fieldId = await ensureField(item.fieldName, req, fieldMap, createdFields);
@@ -214,12 +245,11 @@ const importGamesFromFile = catchAsync(async (req, res) => {
         awayTeamName: item.awayTeamName,
         fieldId,
         assignUserId,
+        eventId: req.body.eventId,
         startDateTime: item.startDateTime,
-        endDateTime: item.endDateTime,
         createdBy: req.user._id,
       });
     }
-
     // Insert into MongoDB
     await service.insertMany(games);
 
@@ -234,6 +264,14 @@ const importGamesFromFile = catchAsync(async (req, res) => {
   }
 });
 
+const getGameScoreByGameId = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const game = await service.getByGameId(id);
+  if (!game) throw new ApiError(404, 'Game not found');
+  const gameStatistics = await gameStatisticsService.getStatsByGameId(id);
+  res.status(200).json({ game, gameStatistics, field: game.fieldId });
+});
+
 module.exports = {
   createGame,
   updateGame,
@@ -241,5 +279,6 @@ module.exports = {
   deleteGame,
   listGames,
   getGameByIdAndUserId,
-  importGamesFromFile
+  importGamesFromFile,
+  getGameScoreByGameId
 };

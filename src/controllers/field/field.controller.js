@@ -5,16 +5,19 @@ const QRCode = require('qrcode');
 const { uploadBufferToS3, deleteFromS3, renameS3Object } = require('../../helpers/s3Helper');
 const config = require('../../config/config');
 const { generateUniqueSlug } = require('../../helpers/slugHelper');
+const axios = require('axios');
 
 /**
  * ✅ Create Field
  */
 const createField = catchAsync(async (req, res) => {
-  let { name, ads = {}, unviseralClock } = req.body;
+  let { name, ads = {}, unviseralClock, adsTime } = req.body;
 
   if (!name) throw new ApiError(400, 'Field name is required');
   name = name.trim();
 
+  adsTime = Number(adsTime);
+  if (isNaN(adsTime)) adsTime = 30;
   const slug = await generateUniqueSlug(name);
   const redirectUrl = `${config.APP_BASE_URL}/${slug}`;
   const qrBuffer = await QRCode.toBuffer(redirectUrl);
@@ -57,6 +60,7 @@ const createField = catchAsync(async (req, res) => {
     slug,
     qrCodeUrl,
     unviseralClock,
+    adsTime,
     ads: { desktop: desktopAds, mobile: mobileAds },
     createdBy: req.user._id,
   });
@@ -73,10 +77,13 @@ const createField = catchAsync(async (req, res) => {
  */
 const updateField = catchAsync(async (req, res) => {
   const { id } = req.params;
-  let { name, ads = {}, unviseralClock } = req.body;
+  let { name, ads = {}, unviseralClock, adsTime } = req.body;
 
   if (!name) throw new ApiError(400, 'Field name is required');
   name = name.trim();
+
+  adsTime = Number(adsTime);
+  if (isNaN(adsTime)) adsTime = 30;
 
   const field = await service.getByFieldId(id);
   if (!field) throw new ApiError(404, 'Field not found');
@@ -142,6 +149,7 @@ const updateField = catchAsync(async (req, res) => {
     slug,
     qrCodeUrl,
     unviseralClock,
+    adsTime,
     ads: { desktop: desktopAds, mobile: mobileAds },
   });
 
@@ -254,6 +262,29 @@ const ensureField = async (fieldName) => {
   return newField._id;
 }
 
+const verifyCaptcha = catchAsync(async (req, res) => {
+  const { token } = req.body;
+  const secretKey = config.RECAPTCHA_SECRET_KEY;
+
+  try {
+    // Call Google API
+    const response = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`
+    );
+    const data = response.data;
+    console.log(data)
+    if (data.success) {
+      // Human detected (v3 score-based) or v2 success
+      res.status(200).json({ success: true, human: true });
+    } else {
+      res.status(400).json({ success: false, message: "You are not a human" });
+    }
+  } catch (error) {
+    console.error("Captcha verification error:", error);
+    res.status(500).json({ success: false, message: "Verification failed" });
+  }
+});
+
 module.exports = {
   createField,
   updateField,
@@ -263,5 +294,6 @@ module.exports = {
   getAllField,
   getFieldBySlug,
   updateUniversalClock,
-  ensureField
+  ensureField,
+  verifyCaptcha
 };

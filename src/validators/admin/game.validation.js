@@ -46,12 +46,6 @@ const createGame = Joi.object({
             "date.base": "Start date must be a valid date",
             "any.required": "Start date is required",
         }),
-    endDateTime: Joi.date()
-        .required()
-        .messages({
-            "date.base": "End date must be a valid date",
-            "any.required": "End date is required",
-        }),
     assignUserId: Joi.string()
         .length(24)
         .hex()
@@ -60,6 +54,7 @@ const createGame = Joi.object({
             "string.length": "Scorekeeper ID must be a 24-character hex string",
             "string.hex": "Scorekeeper ID must be a valid hex string",
         }),
+    eventId: Joi.optional(),
     userTimezone: Joi.optional()
 });
 

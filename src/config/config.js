@@ -39,6 +39,7 @@ const envVarsSchema = Joi.object()
     AWS_S3_BUCKET: Joi.string().required().description('AWS S3 bucket name'),
     APP_BASE_URL: Joi.string().required().description('Frontend url'),
     ADMIN_BASE_URL: Joi.string().required().description('Admin url'),
+    RECAPTCHA_SECRET_KEY: Joi.string().required().description('Recaptcha secret key')
   })
   .unknown();
 const { value: envVars, error } = envVarsSchema
@@ -77,5 +78,6 @@ module.exports = {
     AWS_REGION: envVars.AWS_REGION,
   },
   APP_BASE_URL: envVars.APP_BASE_URL,
-  ADMIN_BASE_URL: envVars.ADMIN_BASE_URL
+  ADMIN_BASE_URL: envVars.ADMIN_BASE_URL,
+  RECAPTCHA_SECRET_KEY: envVars.RECAPTCHA_SECRET_KEY
 };

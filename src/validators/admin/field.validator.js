@@ -12,6 +12,7 @@ const placementSchema = Joi.array().items(
 const createField = Joi.object({
     name: Joi.string().required(),
     unviseralClock: Joi.boolean(),
+    adsTime: Joi.optional(),
     ads: Joi.object({
         desktop: Joi.object({
             top: placementSchema.optional(),
@@ -32,8 +33,12 @@ const singleId = Joi.object({
 const getFieldBySlug = Joi.object({
     slug: Joi.string().required(),
 })
+const getVerifyCaptcha = Joi.object({
+    token: Joi.string().required(),
+})
 module.exports = {
     createField,
     singleId,
-    getFieldBySlug
+    getFieldBySlug,
+    getVerifyCaptcha
 };

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('./user.model');
 const Field = require('./field.model');
+const Event = require('./event.model');
 const GameSchema = new mongoose.Schema({
     homeTeamName: { type: String, required: true },
     homeTeamLogo: { type: String },
@@ -10,10 +11,11 @@ const GameSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: Field,
     },
-    startDateTime: {
-        type: Date,
+    eventId: {
+        type: mongoose.Types.ObjectId,
+        ref: Event,
     },
-    endDateTime: {
+    startDateTime: {
         type: Date,
     },
     endGame: {

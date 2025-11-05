@@ -6,6 +6,6 @@ const validator = require('express-joi-validation').createValidator({
     passError: true,
 });
 
-router.use(auth(['scorekeeper']));
-router.get('/:id', validator.params(validationSchema.singleId), controller.getGameByIdAndUserId);
+router.get('/:id', auth(['scorekeeper']), validator.params(validationSchema.singleId), controller.getGameByIdAndUserId);
+router.get('/score/:id', validator.params(validationSchema.singleId), controller.getGameScoreByGameId);
 module.exports = router;

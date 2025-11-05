@@ -29,7 +29,7 @@ const updateGame = async (id, data) => {
 };
 
 // ✅ List all games with pagination + search
-const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
+const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = "" }) => {
   const skip = (page - 1) * limit;
 
   const match = {};
@@ -38,6 +38,20 @@ const listGames = async ({ page = 1, limit = 10, search = "", user }) => {
   }
   if (user.role === 'event-director' && user._id) {
     match.createdBy = new mongoose.Types.ObjectId(user._id);
+  }
+  if (user.role === 'event-director') {
+    if (eventId) {
+      match.eventId = new mongoose.Types.ObjectId(eventId);
+    } else {
+      return {
+        total: 0,
+        page,
+        limit,
+        totalPages: 1,
+        games: [],
+      };
+    }
+
   }
   const pipeline = [
     {
@@ -119,7 +133,6 @@ const getGameByFieldId = async (fieldId) => {
   return Game.findOne({
     fieldId,
     startDateTime: { $lte: now },
-    endDateTime: { $gte: now },
     endGame: false,
   }).sort({ startDateTime: 1 });
 };

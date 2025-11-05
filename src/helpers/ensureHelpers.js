@@ -36,35 +36,52 @@ const ensureField = async (fieldName, req, fieldMap, createdFields) => {
 }
 
 /**
- * Ensure a scorekeeper user exists, otherwise create it
+ * Ensure a scorekeeper user exists, otherwise create it or link to existing one.
+ * Supports shared scorekeepers (multiple event directors can link to the same user).
  */
 const ensureUser = async (email, req, userMap, createdUsers, fullName = '') => {
     if (!email) return null;
 
     const key = email.trim().toLowerCase();
+    const creatorId = req.user?._id;
 
-    // ✅ If user already exists, return existing ID
+    // ✅ Return cached user if already processed
     if (userMap[key]) return userMap[key];
 
-    // ✅ Create a new user if not found
+    // ✅ Try to find existing user by email
+    let user = await userService.getUserByEmail(key);
+
+    if (user) {
+        // ✅ If user exists but not yet linked to this director, link them
+        if (!user.createdBy.some(id => id.equals(creatorId))) {
+            user.createdBy.push(creatorId);
+            await user.save();
+        }
+
+        userMap[key] = user._id;
+        return user._id;
+    }
+
+    // ✅ Otherwise, create a new scorekeeper user
     const password = Math.random().toString(36).slice(-8); // random 8-char password
 
-    const newUser = await userService.addUser({
-        email,
+    user = await userService.addUser({
+        email: key,
         password,
-        fullName: fullName || email.split('@')[0], // fallback to part before @
+        fullName: fullName || email.split('@')[0],
         role: 'scorekeeper',
-        createdBy: req.user._id,
+        createdBy: [creatorId],
+        firstTimeLogin: true,
     });
 
-    // ✅ Cache and track
-    userMap[key] = newUser._id;
+    // ✅ Cache and track created user
+    userMap[key] = user._id;
     createdUsers.push({
-        email: newUser.email,
-        fullName: newUser.fullName,
+        email: user.email,
+        fullName: user.fullName,
     });
 
-    return newUser._id;
+    return user._id;
 };
 
 

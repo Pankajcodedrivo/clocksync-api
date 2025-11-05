@@ -10,7 +10,7 @@ const userListFind = async (
   page = 1,
   searchQuery = '',
   role = '',
-  userrole = '',
+  userRole = '',
 ) => {
   try {
     const query = {};
@@ -26,9 +26,11 @@ const userListFind = async (
     if (role) {
       query.role = role;
     }
-    if (userrole !== 'admin' && id) {
-      query.createdBy = new mongoose.Types.ObjectId(id);
+    // ✅ Filter by creator if not admin
+    if (userRole !== 'admin' && id) {
+      query.createdBy = { $in: [new mongoose.Types.ObjectId(id)] };
     }
+
 
     if (id) {
       query._id = { $ne: id };
@@ -191,9 +193,13 @@ const userBlockUnblock = async (id, status) => {
 };
 
 // get number of users
-const getUsersCount = async (query) => {
-  const totalUsers = await User.countDocuments(query);
-  return totalUsers;
+const getUsersCount = async (filter = {}) => {
+  const query = { ...filter };
+  // ✅ Normalize createdBy for array-based schema
+  if (filter.createdBy) {
+    query.createdBy = { $in: [new mongoose.Types.ObjectId(filter.createdBy)] };
+  }
+  return User.countDocuments(query);
 };
 
 const userInvitations = async (id, limit = 10, page = 1, searchQuery = '') => {
@@ -233,6 +239,16 @@ const userInvitations = async (id, limit = 10, page = 1, searchQuery = '') => {
   }
 };
 
+const getUserByEmail = async (email) => {
+  if (!email) return null;
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Using case-insensitive query for safety
+  const user = await User.findOne({ email: normalizedEmail });
+
+  return user;
+};
 module.exports = {
   userListFind,
   addUser,
@@ -246,5 +262,6 @@ module.exports = {
   addamount,
   userListFindBySubscibedAdmin,
   listEventDirector,
-  getAllUser
+  getAllUser,
+  getUserByEmail
 };

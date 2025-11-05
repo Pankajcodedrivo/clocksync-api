@@ -10,6 +10,7 @@ const FieldSchema = new mongoose.Schema({
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
     qrCodeUrl: { type: String }, // Base64 QR code
+    adsTime: { type: Number, default: 30 },
     // ✅ Ads structured by platform and position
     ads: {
         desktop: {
