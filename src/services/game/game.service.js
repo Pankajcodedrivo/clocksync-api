@@ -12,7 +12,8 @@ const getByGameId = async (id) => {
 
 // ✅ Find Game by id and assigned user
 const getGameByIdAndUserId = async (_id, assignUserId) => {
-  return Game.findOne({ _id, assignUserId });
+  console.log(assignUserId);
+  return Game.findOne({ _id, assignUserId }).populate("fieldId");
 };
 
 // ✅ Update Game (prevent endDateTime update after endGame=true)
@@ -128,7 +129,6 @@ const deleteGameById = async (id) => {
 // ✅ Get game by field
 const getGameByFieldId = async (fieldId) => {
   const now = new Date();
-
   // Find game that is currently active
   return Game.findOne({
     fieldId,

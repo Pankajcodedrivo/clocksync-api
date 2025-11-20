@@ -11,6 +11,7 @@ const FieldSchema = new mongoose.Schema({
     slug: { type: String, required: true, unique: true },
     qrCodeUrl: { type: String }, // Base64 QR code
     adsTime: { type: Number, default: 30 },
+    status: { type: String, enum: ['pending', 'approve', 'reject'] },
     // ✅ Ads structured by platform and position
     ads: {
         desktop: {

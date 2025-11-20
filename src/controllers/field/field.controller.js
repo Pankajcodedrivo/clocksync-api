@@ -1,6 +1,8 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/field/field.service');
+const emailService = require('../../services/email/email.service');
+const userService = require('../../services/admin/user.service');
 const QRCode = require('qrcode');
 const { uploadBufferToS3, deleteFromS3, renameS3Object } = require('../../helpers/s3Helper');
 const config = require('../../config/config');
@@ -63,7 +65,21 @@ const createField = catchAsync(async (req, res) => {
     adsTime,
     ads: { desktop: desktopAds, mobile: mobileAds },
     createdBy: req.user._id,
+    status: req.user.role === 'admin' ? 'approve' : 'pending',
   });
+
+  if (req.user.role !== 'admin') {
+    await emailService.sendSGEmail({
+      to: 'info@clocksynk.com',
+      templateId: "d-9a49e90fb17e4fb8999174779750e856",
+      dynamic_template_data: {
+        name: req.user.fullName,
+        status: "added",
+        url: config.ADMIN_BASE_URL
+      },
+    });
+  }
+
 
   res.status(201).json({
     message: 'Field created successfully',
@@ -151,8 +167,19 @@ const updateField = catchAsync(async (req, res) => {
     unviseralClock,
     adsTime,
     ads: { desktop: desktopAds, mobile: mobileAds },
+    status: req.user.role === 'admin' ? 'approve' : 'pending',
   });
-
+  if (req.user.role !== 'admin') {
+    await emailService.sendSGEmail({
+      to: 'info@clocksynk.com',
+      templateId: "d-9a49e90fb17e4fb8999174779750e856",
+      dynamic_template_data: {
+        name: req.user.fullName,
+        status: "updated",
+        url: config.ADMIN_BASE_URL
+      },
+    });
+  }
   res.status(200).json({
     message: 'Field updated successfully',
     field: updatedField,
@@ -162,10 +189,10 @@ const updateField = catchAsync(async (req, res) => {
 
 const updateUniversalClock = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const updatedField = await service.updateField(id, req.body);
+  const updatedFieldData = await service.updateField(id, req.body);
   res.status(200).json({
     message: 'Field updated successfully',
-    field: updatedField,
+    field: updatedFieldData,
 
   });
 });
@@ -272,7 +299,6 @@ const verifyCaptcha = catchAsync(async (req, res) => {
       `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`
     );
     const data = response.data;
-    console.log(data)
     if (data.success) {
       // Human detected (v3 score-based) or v2 success
       res.status(200).json({ success: true, human: true });
@@ -285,6 +311,40 @@ const verifyCaptcha = catchAsync(async (req, res) => {
   }
 });
 
+const updateStatus = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  // Validate status (only "true" or "false" allowed)
+  if (status !== "active" && status !== "reject") {
+    return res.status(400).json({
+      message: "Invalid status value",
+    });
+  }
+  const data = await service.updateField(id, { status: status });
+  console.log(data);
+  const user = await userService.getUserById(data.createdBy);
+  console.log(user);
+  await emailService.sendSGEmail({
+    to: user.email,
+    templateId: "d-9cf4a67cd8f14f94a3db7f7d8c6efb72",
+    dynamic_template_data: {
+      status: status === "approve" ? "approved" : "rejected",
+      url: config.ADMIN_BASE_URL
+    },
+  });
+
+  const message =
+    status === "approve"
+      ? "Field approved successfully"
+      : "Field reject successfully";
+
+  res.status(200).json({
+    message,
+    field: data,
+  });
+});
+
 module.exports = {
   createField,
   updateField,
@@ -295,5 +355,6 @@ module.exports = {
   getFieldBySlug,
   updateUniversalClock,
   ensureField,
-  verifyCaptcha
+  verifyCaptcha,
+  updateStatus
 };

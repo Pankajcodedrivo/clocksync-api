@@ -45,8 +45,8 @@ router.patch(
 
 // ✅ Get paginated list
 router.get('/list/:page/:limit', controller.listField);
-
 router.patch('/update-universal-clock/:id', controller.updateUniversalClock);
+router.patch('/update-status/:id', controller.updateStatus);
 
 // ✅ Get single field detail
 router.get('/detail/:id', validator.params(validationSchema.singleId), controller.getFieldById);

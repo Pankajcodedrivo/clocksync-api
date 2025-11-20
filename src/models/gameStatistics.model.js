@@ -1,45 +1,68 @@
 const mongoose = require('mongoose');
 const Game = require('./game.model');
-
-// Clock schema
+//
+// CLOCK SCHEMA
+//
 const ClockSchema = new mongoose.Schema({
-    quarter: { type: Number, default: 0 },
+    quarter: { type: Number, default: 1 },
     minutes: { type: Number, default: 0 },
     seconds: { type: Number, default: 0 },
     running: { type: Boolean, default: false }
 }, { _id: false });
-
-// Team stats schema (summary only)
+//
+// TEAM SUMMARY STATS
+//
 const TeamStatsSchema = new mongoose.Schema({
     score: { type: Number, default: 0 },
     stats: {
-        penalties: { type: Number, default: 0 },
-        shots: { type: Number, default: 0 },
-        saves: { type: Number, default: 0 },
-        fouls: { type: Number, default: 0 }
+        shotOn: { type: Number, default: 0 },
+        shotOff: { type: Number, default: 0 },
+        save: { type: Number, default: 0 },
+        groundBall: { type: Number, default: 0 },
+        drawW: { type: Number, default: 0 },
+        drawL: { type: Number, default: 0 },
+        turnoverForced: { type: Number, default: 0 },   // TO - F
+        turnoverUnforced: { type: Number, default: 0 },  // TO - U
+        goal: { type: Number, default: 0 },  // TO - U
+        penalty: { type: Number, default: 0 },
     }
 }, { _id: false });
-
-// Goal schema
-const GoalSchema = new mongoose.Schema({
+//
+// UNIFIED ACTION / EVENT SCHEMA
+//
+const ActionEventSchema = new mongoose.Schema({
+    // Event Type
+    type: {
+        type: String,
+        enum: [
+            'shot_on',
+            'shot_off',
+            'save',
+            'ground_ball',
+            'draw_w',
+            'draw_l',
+            'to_f',
+            'to_u',
+            'goal',
+            'penalty'
+        ],
+        required: true
+    },
     team: { type: String, enum: ['home', 'away'], required: true },
     playerNo: { type: Number, required: true },
-    minute: { type: Number, required: true, default: 0 },
+    // When?
+    quarter: { type: Number, required: true },
+    minute: { type: Number, default: 0 },
     second: { type: Number, default: 0 },
-}, { _id: false });
-
-// Penalty schema
-const PenaltySchema = new mongoose.Schema({
-    team: { type: String, enum: ['home', 'away'], required: true },
-    type: { type: String, enum: ['releasable', 'non-releasable'], required: true },
-    playerNo: { type: Number, required: true },
-    minutes: { type: Number, default: 0 },
-    seconds: { type: Number, default: 0 },
-    startMinute: { type: Number, required: true },
-    startSecond: { type: Number, required: true },
-}, { _id: true });
-
-// Main schema
+    // Penalty-specific fields (only used when type === 'penalty')
+    penaltyType: { type: String, enum: ['releasable', 'non-releasable'] },
+    penaltyMinutes: { type: Number },
+    penaltySeconds: { type: Number },
+    infraction: { type: String },
+}, { _id: true, timestamps: true });
+//
+// MAIN SCHEMA
+//
 const GameStatisticsSchema = new mongoose.Schema({
     gameId: {
         type: mongoose.Types.ObjectId,
@@ -49,9 +72,8 @@ const GameStatisticsSchema = new mongoose.Schema({
     homeTeam: { type: TeamStatsSchema, default: () => ({}) },
     awayTeam: { type: TeamStatsSchema, default: () => ({}) },
     clock: { type: ClockSchema, default: () => ({}) },
-
-    goals: [GoalSchema],
-    penalties: [PenaltySchema]
+    // Only one event list now
+    actions: [ActionEventSchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('gameStatistics', GameStatisticsSchema);

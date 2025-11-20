@@ -26,6 +26,7 @@ const sendSGEmail = async (mailData) => {
     },
     (error) => {
       if (error.response) {
+        console.log(error.response.body)
         logger.error(error.response.body);
       }
     },

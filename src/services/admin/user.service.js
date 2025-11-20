@@ -263,5 +263,6 @@ module.exports = {
   userListFindBySubscibedAdmin,
   listEventDirector,
   getAllUser,
-  getUserByEmail
+  getUserByEmail,
+  getUserById
 };

@@ -137,12 +137,16 @@ mongoose.connect(config.mongoose.url).then(() => {
   // 🧩 SOCKET.IO
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
-
     // Rooms
-    socket.on('joinRoom', ({ gameId }) => {
+    socket.on('joinRoom', async ({ gameId }) => {
       if (!gameId) return;
       socket.join(gameId);
       console.log(`Socket ${socket.id} joined room ${gameId}`);
+      // 🔥 Send latest game stats immediately when user joins
+      const stats = await GameStatisticsService.getStatsByGameId(gameId);
+      if (stats) {
+        socket.emit('statUpdated', stats);
+      }
     });
 
     socket.on('joinUser', async ({ userId }) => {
@@ -162,7 +166,6 @@ mongoose.connect(config.mongoose.url).then(() => {
       }
       io.to(`user:${userId}`).emit('universalClockState', clock);
     });
-
     // 🧭 UNIVERSAL CLOCK EVENTS
     socket.on('startUniversalClock', async ({ userId }) => {
       let clock = await UniversalClock.findOne({ userId });
@@ -220,93 +223,54 @@ mongoose.connect(config.mongoose.url).then(() => {
       io.to(gameId).emit('clockUpdated', game.clock);
     });
 
-    socket.on('setClock', async ({ gameId, minutes, seconds }) => {
+    socket.on('setClock', async ({ gameId, quarter, minutes, seconds }) => {
       const game = await GameStatisticsService.getStatsByGameId(gameId);
       if (!game) return;
+      game.clock.quarter = quarter;
       game.clock.minutes = minutes;
       game.clock.seconds = seconds;
       await game.save();
       io.to(gameId).emit('clockUpdated', game.clock);
     });
 
-    socket.on('resetGame', async ({ gameId }) => {
-      try {
-        const stats = await GameStatisticsService.resetGame(gameId);
-        if (activeTimers.has(gameId)) {
-          clearInterval(activeTimers.get(gameId));
-          activeTimers.delete(gameId);
-        }
-        io.to(gameId).emit('gameReset', stats);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
-
-    socket.on('removePenalty', async ({ gameId, penaltyId }) => {
-      try {
-        const stats = await GameStatisticsService.removePenalty(gameId, penaltyId);
-        io.to(gameId).emit('penaltyRemoved', stats);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
-
-    // ✅ Score & stats
-    socket.on('setScore', async ({ gameId, team, value }) => {
-      try {
-        const stats = await GameStatisticsService.setScore(gameId, team, value);
-        io.to(gameId).emit('scoreUpdated', stats);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
 
     socket.on('gameEnded', async ({ gameId }) => {
       try {
         const stats = await GameService.endGameManually(gameId);
         io.to(gameId.toString()).emit('gameEnded', {
-          message: 'Game manually ended by admin',
+          message: 'Game ended by admin',
         });
       } catch (err) {
         socket.emit('error', err.message);
       }
     });
 
-    // ✅ Quater
-    socket.on('setQuater', async ({ gameId, quarter }) => {
+    socket.on('addAction', async (payload) => {
       try {
-        const stats = await GameStatisticsService.updateClock(gameId, { quarter });
-        io.to(gameId).emit('setQuater', stats);
+        const stats = await GameStatisticsService.addActionEvent(payload);
+        io.to(payload.gameId).emit('statUpdated', stats);
+        io.to(payload.gameId).emit('actionAdded', payload);
       } catch (err) {
         socket.emit('error', err.message);
       }
     });
-    socket.on('setStat', async ({ gameId, team, field, value }) => {
+    socket.on('undoAction', async (payload) => {
       try {
-        const stats = await GameStatisticsService.setTeamStat(gameId, team, field, value);
-        io.to(gameId).emit('statUpdated', stats);
+        const stats = await GameStatisticsService.undoAction(payload);
+        io.to(payload.gameId).emit('statUpdated', stats);
+      } catch (err) {
+        socket.emit('error', err.message);
+      }
+    });
+    socket.on('deleteAction', async (payload) => {
+      try {
+        const stats = await GameStatisticsService.deleteAction(payload);
+        io.to(payload.gameId).emit('statUpdated', stats);
       } catch (err) {
         socket.emit('error', err.message);
       }
     });
 
-    socket.on('addGoal', async ({ gameId, team, playerNo, minute, second }) => {
-      try {
-        const stats = await GameStatisticsService.addGoal(gameId, team, playerNo, minute, second);
-        io.to(gameId).emit('goalAdded', stats);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
-
-    socket.on('addPenalty', async ({ gameId, team, type, playerNo, minutes, seconds }) => {
-      try {
-        const stats = await GameStatisticsService.addPenalty(gameId, team, type, playerNo, minutes, seconds);
-        io.to(gameId).emit('penaltyAdded', stats);
-      } catch (err) {
-        socket.emit('error', err.message);
-      }
-    });
 
     // 🧩 CRON FOR AUTO END
     /*cron.schedule('* * * * *', async () => {
