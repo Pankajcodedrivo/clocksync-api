@@ -316,7 +316,7 @@ const updateStatus = catchAsync(async (req, res) => {
   const { status } = req.body;
 
   // Validate status (only "true" or "false" allowed)
-  if (status !== "active" && status !== "reject") {
+  if (status !== "approve" && status !== "reject") {
     return res.status(400).json({
       message: "Invalid status value",
     });
