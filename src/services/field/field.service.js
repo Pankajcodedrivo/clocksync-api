@@ -66,7 +66,7 @@ const deleteFieldById = async (id) => {
 };
 
 const getFieldBySlug = async (slug) => {
-  const field = await Field.findOne({ slug });
+  const field = await Field.findOne({ slug, status: 'approve' });
   if (!field) {
     throw new ApiError("Field not found", 404);
   }

@@ -231,6 +231,7 @@ const getAllField = catchAsync(async (req, res) => {
   if (req.user.role === 'event-director') {
     match.createdBy = req.user._id
   }
+  match.status = "approve";
   const field = await service.getAllField(match);
   res.status(200).json({ field });
 });
@@ -322,9 +323,7 @@ const updateStatus = catchAsync(async (req, res) => {
     });
   }
   const data = await service.updateField(id, { status: status });
-  console.log(data);
   const user = await userService.getUserById(data.createdBy);
-  console.log(user);
   await emailService.sendSGEmail({
     to: user.email,
     templateId: "d-9cf4a67cd8f14f94a3db7f7d8c6efb72",
