@@ -275,86 +275,139 @@ const getGameScoreByGameId = catchAsync(async (req, res) => {
 const downloadGameStatistics = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  // Fetch statistics
   const stats = await gameStatisticsService.getStatsByGameId(id);
-  if (!stats) {
-    throw new ApiError(404, "Game statistics not found");
-  }
+  if (!stats) throw new ApiError(404, "Game statistics not found");
 
-  // Prepare single sheet Excel data
+  //--------------------------------------------------------------------
+  // COLUMN HEADERS + COLOR FORMATTING
+  //--------------------------------------------------------------------
   const sheetData = [];
 
-  // --- Home team ---
-  sheetData.push(["Home Team Summary"]);
-  sheetData.push(["Score", stats.homeTeam?.score ?? 0]);
-  sheetData.push(["Shots On", stats.homeTeam?.stats?.shotOn ?? 0]);
-  sheetData.push(["Shots Off", stats.homeTeam?.stats?.shotOff ?? 0]);
-  sheetData.push(["Saves", stats.homeTeam?.stats?.save ?? 0]);
-  sheetData.push(["Ground Balls", stats.homeTeam?.stats?.groundBall ?? 0]);
-  sheetData.push(["Draw Win", stats.homeTeam?.stats?.drawW ?? 0]);
-  sheetData.push(["Draw Lose", stats.homeTeam?.stats?.drawL ?? 0]);
-  sheetData.push(["Turnover Forced", stats.homeTeam?.stats?.turnoverForced ?? 0]);
-  sheetData.push(["Turnover Unforced", stats.homeTeam?.stats?.turnoverUnforced ?? 0]);
-  sheetData.push(["Goals", stats.homeTeam?.stats?.goal ?? 0]);
-  sheetData.push(["Penalties", stats.homeTeam?.stats?.penalty ?? 0]);
+  const addSectionHeader = (title) => {
+    sheetData.push([title]);
+    sheetData.push([]); // spacing
+  };
 
-  sheetData.push([]);
-  sheetData.push([]);
+  const addSummaryTable = (teamStats) => {
+    sheetData.push(["Type", "Value"]);
+    sheetData.push(["Score", teamStats.score]);
+    sheetData.push(["Shots On", teamStats.stats.shotOn]);
+    sheetData.push(["Shots Off", teamStats.stats.shotOff]);
+    sheetData.push(["Saves", teamStats.stats.save]);
+    sheetData.push(["Ground Balls", teamStats.stats.groundBall]);
+    sheetData.push(["Draw Win", teamStats.stats.drawW]);
+    sheetData.push(["Draw Lose", teamStats.stats.drawL]);
+    sheetData.push(["Turnover Forced", teamStats.stats.turnoverForced]);
+    sheetData.push(["Turnover Unforced", teamStats.stats.turnoverUnforced]);
+    sheetData.push(["Goals", teamStats.stats.goal]);
+    sheetData.push(["Penalties", teamStats.stats.penalty]);
+    sheetData.push([]);
+  };
 
-  // --- Away team ---
-  sheetData.push(["Away Team Summary"]);
-  sheetData.push(["Score", stats.awayTeam?.score ?? 0]);
-  sheetData.push(["Shots On", stats.awayTeam?.stats?.shotOn ?? 0]);
-  sheetData.push(["Shots Off", stats.awayTeam?.stats?.shotOff ?? 0]);
-  sheetData.push(["Saves", stats.awayTeam?.stats?.save ?? 0]);
-  sheetData.push(["Ground Balls", stats.awayTeam?.stats?.groundBall ?? 0]);
-  sheetData.push(["Draw Win", stats.awayTeam?.stats?.drawW ?? 0]);
-  sheetData.push(["Draw Lose", stats.awayTeam?.stats?.drawL ?? 0]);
-  sheetData.push(["Turnover Forced", stats.awayTeam?.stats?.turnoverForced ?? 0]);
-  sheetData.push(["Turnover Unforced", stats.awayTeam?.stats?.turnoverUnforced ?? 0]);
-  sheetData.push(["Goals", stats.awayTeam?.stats?.goal ?? 0]);
-  sheetData.push(["Penalties", stats.awayTeam?.stats?.penalty ?? 0]);
+  const addActionTable = (title, actions) => {
+    sheetData.push([title]);
+    sheetData.push([]);
 
-  sheetData.push([]);
-  sheetData.push([]);
-
-  // --- Action Events Table ---
-  sheetData.push([
-    "Type",
-    "Team",
-    "Player No",
-    "Quarter",
-    "Minute",
-    "Second",
-    "Penalty Type",
-    "Penalty Minutes",
-    "Penalty Seconds",
-    "Infraction",
-    "Created At"
-  ]);
-
-  stats.actions.forEach((a) => {
     sheetData.push([
-      a.type,
-      a.team,
-      a.playerNo,
-      a.quarter,
-      a.minute ?? "",
-      a.second ?? "",
-      a.penaltyType ?? "",
-      a.penaltyMinutes ?? "",
-      a.penaltySeconds ?? "",
-      a.infraction ?? "",
-      a.createdAt ? new Date(a.createdAt).toISOString() : "",
+      "Type",
+      "Team",
+      "Player No",
+      "Quarter",
+      "Minute",
+      "Second",
+      "Penalty Type",
+      "Penalty Minutes",
+      "Penalty Seconds",
+      "Infraction",
+      "Created At",
     ]);
-  });
 
-  // Build XLSX workbook
+    actions.forEach((a) => {
+      sheetData.push([
+        a.type,
+        a.team,
+        a.playerNo,
+        a.quarter,
+        a.minute ?? "",
+        a.second ?? "",
+        a.penaltyType ?? "",
+        a.penaltyMinutes ?? "",
+        a.penaltySeconds ?? "",
+        a.infraction ?? "",
+        a.createdAt ? new Date(a.createdAt).toISOString() : "",
+      ]);
+    });
+
+    sheetData.push([]);
+  };
+
+  //--------------------------------------------------------------------
+  // BUILD THE SHEET IN ORDER
+  //--------------------------------------------------------------------
+
+  // ⭐ HOME SUMMARY
+  addSectionHeader("HOME TEAM SUMMARY");
+  addSummaryTable(stats.homeTeam);
+
+  // ⭐ HOME ACTION EVENTS
+  const homeActions = stats.actions.filter(a => a.team === "home");
+  addActionTable("HOME TEAM ACTIONS", homeActions);
+
+  // ⭐ AWAY SUMMARY
+  addSectionHeader("AWAY TEAM SUMMARY");
+  addSummaryTable(stats.awayTeam);
+
+  // ⭐ AWAY ACTION EVENTS
+  const awayActions = stats.actions.filter(a => a.team === "away");
+  addActionTable("AWAY TEAM ACTIONS", awayActions);
+
+  //--------------------------------------------------------------------
+  // BUILD THE XLSX WORKBOOK
+  //--------------------------------------------------------------------
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
-  XLSX.utils.book_append_sheet(wb, ws, "Game Statistics");
 
-  // Create binary excel buffer
+  //--------------------------------------------------------------------
+  // APPLY STYLING (colors + bold)
+  //--------------------------------------------------------------------
+  sheetData.forEach((row, rowIndex) => {
+    if (row.length === 1) {
+      // Section headers (full-width)
+      const cell = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
+      ws[cell].s = {
+        fill: { fgColor: { rgb: "FFD966" } }, // light yellow
+        font: { bold: true, sz: 14 },
+      };
+    }
+
+    // Summary table headers ("Type", "Value")
+    if (row[0] === "Type") {
+      const c1 = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
+      const c2 = XLSX.utils.encode_cell({ r: rowIndex, c: 1 });
+
+      ws[c1].s = ws[c2].s = {
+        fill: { fgColor: { rgb: "BDD7EE" } }, // light blue
+        font: { bold: true },
+      };
+    }
+
+    // Action columns header
+    if (row[0] === "Type" && row.length > 2) {
+      for (let col = 0; col < row.length; col++) {
+        const cell = XLSX.utils.encode_cell({ r: rowIndex, c: col });
+        ws[cell].s = {
+          fill: { fgColor: { rgb: "C5E0B4" } }, // light green
+          font: { bold: true },
+        };
+      }
+    }
+  });
+
+  wb.Sheets["Game Statistics"] = ws;
+
+  //--------------------------------------------------------------------
+  // SEND FILE BACK
+  //--------------------------------------------------------------------
   const excelBuffer = XLSX.write(wb, {
     type: "buffer",
     bookType: "xlsx",
@@ -371,7 +424,6 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   return res.send(excelBuffer);
 });
-
 
 module.exports = {
   createGame,
