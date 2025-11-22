@@ -413,7 +413,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     // Values row
     col = 1;
     Object.values(summary).forEach((v) => {
-      sheet.cell(row, col).value(v ?? 0);
+      sheet.cell(row, col).value(v ?? 0).style({ horizontalAlignment: "left" });
       col++;
     });
     row++;
@@ -445,15 +445,15 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
     // Data rows
     actions.forEach((a) => {
-      sheet.cell(row, 1).value(STAT_LABELS[a.type] || a.type);
-      sheet.cell(row, 2).value("#" + a.playerNo);
-      sheet.cell(row, 3).value(a.quarter);
-      sheet.cell(row, 4).value(a.minute ?? "");
-      sheet.cell(row, 5).value(a.second ?? "");
-      sheet.cell(row, 6).value(a.penaltyType ?? "");
-      sheet.cell(row, 7).value(a.penaltyMinutes ?? "");
-      sheet.cell(row, 8).value(a.penaltySeconds ?? "");
-      sheet.cell(row, 9).value(a.infraction ?? "");
+      sheet.cell(row, 1).value(STAT_LABELS[a.type] || a.type).style({ horizontalAlignment: "left" });
+      sheet.cell(row, 2).value("#" + a.playerNo).style({ horizontalAlignment: "left" });
+      sheet.cell(row, 3).value(a.quarter).style({ horizontalAlignment: "left" });
+      sheet.cell(row, 4).value(a.minute ?? "").style({ horizontalAlignment: "left" });
+      sheet.cell(row, 5).value(a.second ?? "").style({ horizontalAlignment: "left" });
+      sheet.cell(row, 6).value(a.penaltyType ?? "").style({ horizontalAlignment: "left" });
+      sheet.cell(row, 7).value(a.penaltyMinutes ?? "").style({ horizontalAlignment: "left" });
+      sheet.cell(row, 8).value(a.penaltySeconds ?? "").style({ horizontalAlignment: "left" });
+      sheet.cell(row, 9).value(a.infraction ?? "").style({ horizontalAlignment: "left" });
       row++;
     });
 
