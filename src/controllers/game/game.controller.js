@@ -291,7 +291,7 @@ const importGamesFromFile = catchAsync(async (req, res) => {
         awayTeamName: awayTeamName || undefined,
         fieldId,
         assignUserId,
-        eventId: req.body.eventId,
+        eventId: req.body.eventId ? req.body.eventId : '',
         startDateTime: parsedStart,
         createdBy: req.user._id,
       });
