@@ -272,6 +272,106 @@ const getGameScoreByGameId = catchAsync(async (req, res) => {
   const gameStatistics = await gameStatisticsService.getStatsByGameId(id);
   res.status(200).json({ game, gameStatistics, field: game.fieldId });
 });
+const downloadGameStatistics = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  // Fetch statistics
+  const stats = await gameStatisticsService.getStatsByGameId(id);
+  if (!stats) {
+    throw new ApiError(404, "Game statistics not found");
+  }
+
+  // Prepare single sheet Excel data
+  const sheetData = [];
+
+  // --- Home team ---
+  sheetData.push(["Home Team Summary"]);
+  sheetData.push(["Score", stats.homeTeam?.score ?? 0]);
+  sheetData.push(["Shots On", stats.homeTeam?.stats?.shotOn ?? 0]);
+  sheetData.push(["Shots Off", stats.homeTeam?.stats?.shotOff ?? 0]);
+  sheetData.push(["Saves", stats.homeTeam?.stats?.save ?? 0]);
+  sheetData.push(["Ground Balls", stats.homeTeam?.stats?.groundBall ?? 0]);
+  sheetData.push(["Draw Win", stats.homeTeam?.stats?.drawW ?? 0]);
+  sheetData.push(["Draw Lose", stats.homeTeam?.stats?.drawL ?? 0]);
+  sheetData.push(["Turnover Forced", stats.homeTeam?.stats?.turnoverForced ?? 0]);
+  sheetData.push(["Turnover Unforced", stats.homeTeam?.stats?.turnoverUnforced ?? 0]);
+  sheetData.push(["Goals", stats.homeTeam?.stats?.goal ?? 0]);
+  sheetData.push(["Penalties", stats.homeTeam?.stats?.penalty ?? 0]);
+
+  sheetData.push([]);
+  sheetData.push([]);
+
+  // --- Away team ---
+  sheetData.push(["Away Team Summary"]);
+  sheetData.push(["Score", stats.awayTeam?.score ?? 0]);
+  sheetData.push(["Shots On", stats.awayTeam?.stats?.shotOn ?? 0]);
+  sheetData.push(["Shots Off", stats.awayTeam?.stats?.shotOff ?? 0]);
+  sheetData.push(["Saves", stats.awayTeam?.stats?.save ?? 0]);
+  sheetData.push(["Ground Balls", stats.awayTeam?.stats?.groundBall ?? 0]);
+  sheetData.push(["Draw Win", stats.awayTeam?.stats?.drawW ?? 0]);
+  sheetData.push(["Draw Lose", stats.awayTeam?.stats?.drawL ?? 0]);
+  sheetData.push(["Turnover Forced", stats.awayTeam?.stats?.turnoverForced ?? 0]);
+  sheetData.push(["Turnover Unforced", stats.awayTeam?.stats?.turnoverUnforced ?? 0]);
+  sheetData.push(["Goals", stats.awayTeam?.stats?.goal ?? 0]);
+  sheetData.push(["Penalties", stats.awayTeam?.stats?.penalty ?? 0]);
+
+  sheetData.push([]);
+  sheetData.push([]);
+
+  // --- Action Events Table ---
+  sheetData.push([
+    "Type",
+    "Team",
+    "Player No",
+    "Quarter",
+    "Minute",
+    "Second",
+    "Penalty Type",
+    "Penalty Minutes",
+    "Penalty Seconds",
+    "Infraction",
+    "Created At"
+  ]);
+
+  stats.actions.forEach((a) => {
+    sheetData.push([
+      a.type,
+      a.team,
+      a.playerNo,
+      a.quarter,
+      a.minute ?? "",
+      a.second ?? "",
+      a.penaltyType ?? "",
+      a.penaltyMinutes ?? "",
+      a.penaltySeconds ?? "",
+      a.infraction ?? "",
+      a.createdAt ? new Date(a.createdAt).toISOString() : "",
+    ]);
+  });
+
+  // Build XLSX workbook
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+  XLSX.utils.book_append_sheet(wb, ws, "Game Statistics");
+
+  // Create binary excel buffer
+  const excelBuffer = XLSX.write(wb, {
+    type: "buffer",
+    bookType: "xlsx",
+  });
+
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="game_statistics_${id}.xlsx"`
+  );
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+
+  return res.send(excelBuffer);
+});
+
 
 module.exports = {
   createGame,
@@ -281,5 +381,6 @@ module.exports = {
   listGames,
   getGameByIdAndUserId,
   importGamesFromFile,
-  getGameScoreByGameId
+  getGameScoreByGameId,
+  downloadGameStatistics
 };
