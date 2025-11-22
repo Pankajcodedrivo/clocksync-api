@@ -336,7 +336,6 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   const XlsxPopulate = require("xlsx-populate");
 
-  // ---------- LABEL MAP ----------
   const STAT_LABELS = {
     score: "Score",
     shotOn: "Shot SOG",
@@ -350,7 +349,6 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     goal: "Goal",
     penalty: "Penalty",
 
-    // Action type mapping
     shot_on: "Shot SOG",
     shot_off: "Shot Off",
     ground_ball: "Ground Ball",
@@ -360,31 +358,28 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     to_u: "TO - U",
   };
 
-  let row = 1; // tracking row number
-
   const workbook = await XlsxPopulate.fromBlankAsync();
-  const sheet = workbook.sheet(0);
+  const sheet = workbook.sheet(0); // << SAFE SHEET
+  let row = 1; // << MUST START AT 1
 
-  // ---------- HEADER SECTION STYLE ----------
+  // ---------- SECTION HEADER ----------
   const addSection = (title) => {
-    sheet.row(row).height(28);
+    sheet.row(row).height(30);
 
-    // Apply full-width color style for columns A–P
-    sheet.range(row, 1, row, 16).style({
-      fill: "4A90E2",        // Blue
-      fontColor: "FFFFFF",   // White text
+    sheet.range(row, 1, row, 20).style({
+      fill: "4A90E2",
       bold: true,
+      fontColor: "FFFFFF",
       horizontalAlignment: "left",
       verticalAlignment: "center"
     });
 
     sheet.cell(row, 1).value(title);
 
-    row++;
-    row++;
+    row += 2;
   };
 
-  // ---------- SUMMARY TABLE ----------
+  // ---------- SUMMARY ----------
   const addSummary = (teamStats) => {
     const summary = {
       score: teamStats.score,
@@ -400,9 +395,9 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       penalty: teamStats.stats.penalty,
     };
 
-    // Header row
-    Object.keys(summary).forEach((k, i) => {
-      sheet.cell(row, i + 1).value(STAT_LABELS[k] || k).style({
+    // LABELS
+    Object.keys(summary).forEach((key, i) => {
+      sheet.cell(row, i + 1).value(STAT_LABELS[key]).style({
         bold: true,
         fill: "333333",
         fontColor: "FFFFFF",
@@ -411,18 +406,17 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     });
     row++;
 
-    // Value row
+    // VALUES
     Object.values(summary).forEach((v, i) => {
       sheet.cell(row, i + 1).value(v ?? 0).style({
         horizontalAlignment: "left"
       });
     });
-    row++;
 
-    row++;
+    row += 2;
   };
 
-  // ---------- ACTIONS TABLE ----------
+  // ---------- ACTION TABLE ----------
   const addActions = (title, actions) => {
     addSection(title);
 
@@ -438,19 +432,20 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       "Infraction",
     ];
 
-    // Header row style
+    // HEADER
     sheet.range(row, 1, row, headers.length).style({
       fill: "333333",
       fontColor: "FFFFFF",
       bold: true,
-      horizontalAlignment: "center",
-      verticalAlignment: "center"
+      horizontalAlignment: "center"
     });
 
-    headers.forEach((h, i) => sheet.cell(row, i + 1).value(h));
+    headers.forEach((h, i) => {
+      sheet.cell(row, i + 1).value(h);
+    });
     row++;
 
-    // Data rows
+    // DATA ROWS
     actions.forEach((a) => {
       const values = [
         STAT_LABELS[a.type] || a.type,
@@ -464,11 +459,10 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
         a.infraction ?? "",
       ];
 
-      values.forEach((value, i) => {
-        sheet
-          .cell(row, i + 1)
-          .value(value)
-          .style({ horizontalAlignment: "left" });
+      values.forEach((v, i) => {
+        sheet.cell(row, i + 1).value(v).style({
+          horizontalAlignment: "left"
+        });
       });
 
       row++;
@@ -477,7 +471,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     row++;
   };
 
-  // ---------- BUILD SHEET ----------
+  // ---------- BUILD ----------
   addSection("HOME TEAM SUMMARY");
   addSummary(stats.homeTeam);
 
@@ -494,15 +488,13 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     stats.actions.filter((x) => x.team === "away")
   );
 
-  // ---------- AUTO column width ----------
+  // ---------- AUTO WIDTH ----------
   sheet.usedRange().forEach((cell) => {
     const col = cell.column();
-    const value = String(cell.value() || "");
-    const width = Math.max(col.width(), value.length + 2);
+    const width = Math.max(col.width(), String(cell.value()).length + 2);
     col.width(width);
   });
 
-  // ---------- EXPORT ----------
   const buffer = await workbook.outputAsync();
 
   res.setHeader(
@@ -516,6 +508,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   return res.send(buffer);
 });
+
 
 // ----------------------------------------------------
 // EXPORT HANDLERS
