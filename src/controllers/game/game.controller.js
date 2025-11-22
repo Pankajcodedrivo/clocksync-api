@@ -328,7 +328,7 @@ const getGameScoreByGameId = catchAsync(async (req, res) => {
 // ----------------------------------------------------
 // DOWNLOAD GAME STATISTICS (EXPORT using xlsx-populate)
 // ----------------------------------------------------
-const downloadGameStatistics = catchAsync(async (req, res) => {
+export const downloadGameStatistics = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const stats = await gameStatisticsService.getStatsByGameId(id);
