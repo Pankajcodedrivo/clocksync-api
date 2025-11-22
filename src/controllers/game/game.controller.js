@@ -278,17 +278,14 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   const stats = await gameStatisticsService.getStatsByGameId(id);
   if (!stats) throw new ApiError(404, "Game statistics not found");
 
-  //--------------------------------------------------------------------
-  // COLUMN HEADERS + COLOR FORMATTING
-  //--------------------------------------------------------------------
   const sheetData = [];
 
-  const addSectionHeader = (title) => {
+  const addSection = (title) => {
     sheetData.push([title]);
-    sheetData.push([]); // spacing
+    sheetData.push([]);
   };
 
-  const addSummaryTable = (teamStats) => {
+  const addSummary = (teamStats) => {
     sheetData.push(["Type", "Value"]);
     sheetData.push(["Score", teamStats.score]);
     sheetData.push(["Shots On", teamStats.stats.shotOn]);
@@ -304,7 +301,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     sheetData.push([]);
   };
 
-  const addActionTable = (title, actions) => {
+  const addActions = (title, actions) => {
     sheetData.push([title]);
     sheetData.push([]);
 
@@ -319,10 +316,10 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       "Penalty Minutes",
       "Penalty Seconds",
       "Infraction",
-      "Created At",
+      "Created At"
     ]);
 
-    actions.forEach((a) => {
+    actions.forEach(a =>
       sheetData.push([
         a.type,
         a.team,
@@ -334,80 +331,33 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
         a.penaltyMinutes ?? "",
         a.penaltySeconds ?? "",
         a.infraction ?? "",
-        a.createdAt ? new Date(a.createdAt).toISOString() : "",
-      ]);
-    });
+        a.createdAt ? new Date(a.createdAt).toISOString() : ""
+      ])
+    );
 
     sheetData.push([]);
   };
 
-  //--------------------------------------------------------------------
-  // BUILD THE SHEET IN ORDER
-  //--------------------------------------------------------------------
+  // Build structure
+  addSection("HOME TEAM SUMMARY");
+  addSummary(stats.homeTeam);
 
-  // ⭐ HOME SUMMARY
-  addSectionHeader("HOME TEAM SUMMARY");
-  addSummaryTable(stats.homeTeam);
+  addSection("HOME TEAM ACTIONS");
+  addActions("Home Actions", stats.actions.filter(a => a.team === "home"));
 
-  // ⭐ HOME ACTION EVENTS
-  const homeActions = stats.actions.filter(a => a.team === "home");
-  addActionTable("HOME TEAM ACTIONS", homeActions);
+  addSection("AWAY TEAM SUMMARY");
+  addSummary(stats.awayTeam);
 
-  // ⭐ AWAY SUMMARY
-  addSectionHeader("AWAY TEAM SUMMARY");
-  addSummaryTable(stats.awayTeam);
+  addSection("AWAY TEAM ACTIONS");
+  addActions("Away Actions", stats.actions.filter(a => a.team === "away"));
 
-  // ⭐ AWAY ACTION EVENTS
-  const awayActions = stats.actions.filter(a => a.team === "away");
-  addActionTable("AWAY TEAM ACTIONS", awayActions);
-
-  //--------------------------------------------------------------------
-  // BUILD THE XLSX WORKBOOK
-  //--------------------------------------------------------------------
+  // Create sheet
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-  //--------------------------------------------------------------------
-  // APPLY STYLING (colors + bold)
-  //--------------------------------------------------------------------
-  sheetData.forEach((row, rowIndex) => {
-    if (row.length === 1) {
-      // Section headers (full-width)
-      const cell = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
-      ws[cell].s = {
-        fill: { fgColor: { rgb: "FFD966" } }, // light yellow
-        font: { bold: true, sz: 14 },
-      };
-    }
+  XLSX.utils.book_append_sheet(wb, ws, "Game Statistics");
 
-    // Summary table headers ("Type", "Value")
-    if (row[0] === "Type") {
-      const c1 = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
-      const c2 = XLSX.utils.encode_cell({ r: rowIndex, c: 1 });
-
-      ws[c1].s = ws[c2].s = {
-        fill: { fgColor: { rgb: "BDD7EE" } }, // light blue
-        font: { bold: true },
-      };
-    }
-
-    // Action columns header
-    if (row[0] === "Type" && row.length > 2) {
-      for (let col = 0; col < row.length; col++) {
-        const cell = XLSX.utils.encode_cell({ r: rowIndex, c: col });
-        ws[cell].s = {
-          fill: { fgColor: { rgb: "C5E0B4" } }, // light green
-          font: { bold: true },
-        };
-      }
-    }
-  });
-
-  wb.Sheets["Game Statistics"] = ws;
-
-  //--------------------------------------------------------------------
-  // SEND FILE BACK
-  //--------------------------------------------------------------------
+  // Write
   const excelBuffer = XLSX.write(wb, {
     type: "buffer",
     bookType: "xlsx",
@@ -424,6 +374,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   return res.send(excelBuffer);
 });
+
 
 module.exports = {
   createGame,
