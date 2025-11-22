@@ -285,16 +285,18 @@ const importGamesFromFile = catchAsync(async (req, res) => {
 
       const fieldId = await ensureField(fieldName, req, fieldMap, createdFields);
       const assignUserId = await ensureUser(scorekeeperEmail, req, userMap, createdUsers);
-
-      games.push({
+      let data = {
         homeTeamName: homeTeamName || undefined,
         awayTeamName: awayTeamName || undefined,
         fieldId,
         assignUserId,
-        eventId: req.body.eventId ? req.body.eventId : '',
         startDateTime: parsedStart,
         createdBy: req.user._id,
-      });
+      };
+      if (req.body.eventId) {
+        data.eventId = req.body.eventId;
+      }
+      games.push();
     }
 
     // Insert into DB
