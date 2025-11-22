@@ -369,7 +369,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   // Helper: FULL ROW TITLE STYLE
   const applyFullRowTitle = (title) => {
     const startCol = 1;
-    const endCol = 9; // Adjust if needed
+    const endCol = 11; // Adjust if needed
 
     sheet.range(row, startCol, row, endCol).merged(true);
 
@@ -378,7 +378,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       fontColor: "FFFFFF",          // white text
       horizontalAlignment: "center",
       verticalAlignment: "center",
-      fill: "4472C4",               // dark blue background
+      fill: "3B82F6",               // dark blue background
       fontSize: 14,
     });
 
