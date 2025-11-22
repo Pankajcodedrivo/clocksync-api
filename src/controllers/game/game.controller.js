@@ -332,183 +332,182 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const stats = await gameStatisticsService.getStatsByGameId(id);
-  if (!stats) throw new ApiError(404, 'Game statistics not found');
+  if (!stats) throw new ApiError(404, "Game statistics not found");
 
+  // ---------- LABEL MAP ----------
   const STAT_LABELS = {
-    score: 'Score',
-    shotOn: 'Shot SOG',
-    shotOff: 'Shot Off',
-    save: 'Saves',
-    groundBall: 'Ground Ball',
-    drawW: 'Draw W',
-    drawL: 'Draw L',
-    turnoverForced: 'TO - F',
-    turnoverUnforced: 'TO - U',
-    goal: 'Goal',
-    penalty: 'Penalty',
+    score: "Score",
+    shotOn: "Shot SOG",
+    shotOff: "Shot Off",
+    save: "Saves",
+    groundBall: "Ground Ball",
+    drawW: "Draw W",
+    drawL: "Draw L",
+    turnoverForced: "TO - F",
+    turnoverUnforced: "TO - U",
+    goal: "Goal",
+    penalty: "Penalty",
 
-    // action mapping
-    shot_on: 'Shot SOG',
-    shot_off: 'Shot Off',
-    ground_ball: 'Ground Ball',
-    draw_w: 'Draw W',
-    draw_l: 'Draw L',
-    to_f: 'TO - F',
-    to_u: 'TO - U',
+    // Actions
+    shot_on: "Shot SOG",
+    shot_off: "Shot Off",
+    ground_ball: "Ground Ball",
+    draw_w: "Draw W",
+    draw_l: "Draw L",
+    to_f: "TO - F",
+    to_u: "TO - U",
   };
 
-  // create workbook
+  // ---------- INITIALIZE EXCEL ----------
   const workbook = await XlsxPopulate.fromBlankAsync();
-  const sheet = workbook.sheet(0);
-  sheet.name('Game Statistics');
+  const sheet = workbook.sheet(0).name("Game Statistics");
 
   let row = 1;
 
-  // Helpers
-  const addSectionTitle = (title) => {
+  // Helper: Format section header
+  const addSection = (title) => {
     sheet.cell(row, 1).value(title).style({
       bold: true,
-      fill: 'D9EAF7',
+      fill: "D9EAF7"
     });
-    // make the title span across many columns visually: merge first 9 columns
-    sheet.range(row, 1, row, 9).merged(true);
-    row += 2;
+    row++;
+
+    row++; // spacer
   };
 
-  const addSummary = (teamStats) => {
+  // Helper: Add Summary Block
+  const addSummary = (team) => {
     const summary = {
-      score: teamStats.score,
-      shotOn: teamStats.stats?.shotOn,
-      shotOff: teamStats.stats?.shotOff,
-      save: teamStats.stats?.save,
-      groundBall: teamStats.stats?.groundBall,
-      drawW: teamStats.stats?.drawW,
-      drawL: teamStats.stats?.drawL,
-      turnoverForced: teamStats.stats?.turnoverForced,
-      turnoverUnforced: teamStats.stats?.turnoverUnforced,
-      goal: teamStats.stats?.goal,
-      penalty: teamStats.stats?.penalty,
+      score: team.score,
+      shotOn: team.stats.shotOn,
+      shotOff: team.stats.shotOff,
+      save: team.stats.save,
+      groundBall: team.stats.groundBall,
+      drawW: team.stats.drawW,
+      drawL: team.stats.drawL,
+      turnoverForced: team.stats.turnoverForced,
+      turnoverUnforced: team.stats.turnoverUnforced,
+      goal: team.stats.goal,
+      penalty: team.stats.penalty,
     };
 
+    // Labels row
     let col = 1;
     Object.keys(summary).forEach((k) => {
       sheet.cell(row, col).value(STAT_LABELS[k] || k).style({ bold: true });
       col++;
     });
-
     row++;
 
+    // Values row
     col = 1;
     Object.values(summary).forEach((v) => {
       sheet.cell(row, col).value(v ?? 0);
       col++;
     });
-
-    row += 2;
-  };
-
-  const addActions = (title, actions) => {
-    // Section heading
-    sheet.cell(row, 1).value(title).style({
-      bold: true,
-      fill: 'D9EAF7',
-    });
-    sheet.range(row, 1, row, 9).merged(true);
     row++;
 
+    row++; // spacer
+  };
+
+  // Helper: Add Actions Table
+  const addActions = (title, actions) => {
+    sheet.cell(row, 1).value(title).style({
+      bold: true,
+      fill: "D9EAF7"
+    });
+    row++;
+
+    row++; // spacer
+
     const headers = [
-      'Type',
-      'Player No',
-      'Quarter',
-      'Minute',
-      'Second',
-      'Penalty Type',
-      'Penalty Minutes',
-      'Penalty Seconds',
-      'Infraction',
+      "Type",
+      "Player No",
+      "Quarter",
+      "Minute",
+      "Second",
+      "Penalty Type",
+      "Penalty Minutes",
+      "Penalty Seconds",
+      "Infraction"
     ];
 
+    // Header
     headers.forEach((h, i) => {
       sheet.cell(row, i + 1).value(h).style({ bold: true });
     });
-
     row++;
 
+    // Rows
     actions.forEach((a) => {
-      const values = [
-        STAT_LABELS[a.type] || a.type,
-        a.playerNo != null ? `#${a.playerNo}` : '',
-        a.quarter ?? '',
-        a.minute ?? '',
-        a.second ?? '',
-        a.penaltyType ?? '',
-        a.penaltyMinutes ?? '',
-        a.penaltySeconds ?? '',
-        a.infraction ?? '',
-      ];
+      sheet.cell(row, 1).value(STAT_LABELS[a.type] || a.type);
+      sheet.cell(row, 2).value("#" + a.playerNo);
+      sheet.cell(row, 3).value(a.quarter);
+      sheet.cell(row, 4).value(a.minute ?? "");
+      sheet.cell(row, 5).value(a.second ?? "");
+      sheet.cell(row, 6).value(a.penaltyType ?? "");
+      sheet.cell(row, 7).value(a.penaltyMinutes ?? "");
+      sheet.cell(row, 8).value(a.penaltySeconds ?? "");
+      sheet.cell(row, 9).value(a.infraction ?? "");
 
-      values.forEach((v, i) => {
-        sheet.cell(row, i + 1).value(v);
-      });
       row++;
     });
 
-    row += 2;
+    row++; // spacer
   };
 
-  // Build sheet
-  addSectionTitle('HOME TEAM SUMMARY');
-  addSummary(stats.homeTeam ?? { score: 0, stats: {} });
+  // ---------- BUILD SECTIONS ----------
+  addSection("HOME TEAM SUMMARY");
+  addSummary(stats.homeTeam);
 
-  addActions('HOME TEAM ACTIONS', (stats.actions || []).filter((a) => a.team === 'home'));
+  addActions(
+    "HOME TEAM ACTIONS",
+    stats.actions.filter((a) => a.team === "home")
+  );
 
-  addSectionTitle('AWAY TEAM SUMMARY');
-  addSummary(stats.awayTeam ?? { score: 0, stats: {} });
+  addSection("AWAY TEAM SUMMARY");
+  addSummary(stats.awayTeam);
 
-  addActions('AWAY TEAM ACTIONS', (stats.actions || []).filter((a) => a.team === 'away'));
+  addActions(
+    "AWAY TEAM ACTIONS",
+    stats.actions.filter((a) => a.team === "away")
+  );
 
-  // Auto-fit columns (simple approach)
-  const usedRange = sheet.usedRange();
-  if (usedRange) {
-    const end = usedRange.endCell();
+  // ---------- AUTO COLUMN WIDTHS ----------
+  const used = sheet.usedRange();
+  if (used) {
+    const start = used.startCell();
+    const end = used.endCell();
+    const lastRow = end.rowNumber();
     const lastCol = end.columnNumber();
-    for (let c = 1; c <= Math.max(6, lastCol); c++) {
+
+    for (let col = 1; col <= lastCol; col++) {
       let maxLen = 8;
-      const col = sheet.column(c);
-      col.cells().forEach((cell) => {
-        const v = cell.value();
-        if (v != null) {
-          maxLen = Math.max(maxLen, String(v).length + 2);
+
+      for (let r = 1; r <= lastRow; r++) {
+        const cell = sheet.cell(r, col);
+        const val = cell.value();
+
+        if (val != null) {
+          maxLen = Math.max(maxLen, String(val).length + 2);
         }
-      });
-      col.width(maxLen);
+      }
+
+      sheet.column(col).width(maxLen);
     }
   }
 
-  // Optional: add thin borders around the table areas (light)
-  try {
-    // add border to all used cells
-    const used = sheet.usedRange();
-    if (used) {
-      const start = used.startCell();
-      const end = used.endCell();
-      const r1 = start.rowNumber();
-      const c1 = start.columnNumber();
-      const r2 = end.rowNumber();
-      const c2 = end.columnNumber();
-      const range = sheet.range(r1, c1, r2, c2);
-      range.style('border', true); // set simple border
-    }
-  } catch (e) {
-    // non-fatal; border styling might vary by xlsx-populate version
-    // ignore if fails
-  }
-
-  // Output workbook buffer
+  // ---------- SEND FILE ----------
   const buffer = await workbook.outputAsync();
 
-  res.setHeader('Content-Disposition', `attachment; filename="game_statistics_${id}.xlsx"`);
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="game_statistics_${id}.xlsx"`
+  );
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
 
   return res.send(buffer);
 });
