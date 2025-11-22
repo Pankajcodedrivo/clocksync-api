@@ -279,7 +279,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   const stats = await gameStatisticsService.getStatsByGameId(id);
   if (!stats) throw new ApiError(404, "Game statistics not found");
 
-  // ------------ LABEL MAP -------------
+  // ---------- LABEL MAP ----------
   const STAT_LABELS = {
     score: "Score",
     shotOn: "Shot SOG",
@@ -292,26 +292,22 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     turnoverUnforced: "TO - U",
     goal: "Goal",
     penalty: "Penalty",
-    clear_success: "Clear Success",
 
-    // EVENT TYPES (Action Schema)
+    // Action type mapping
     shot_on: "Shot SOG",
     shot_off: "Shot Off",
-    save: "Save",
     ground_ball: "Ground Ball",
     draw_w: "Draw W",
     draw_l: "Draw L",
     to_f: "TO - F",
     to_u: "TO - U",
-    goal: "Goal",
-    penalty: "Penalty",
   };
 
   const sheetData = [];
 
-  // ----------- HELPERS --------------
+  // ---------- HELPERS ----------
   const addSection = (title) => {
-    sheetData.push([title]);
+    sheetData.push([title]); // <-- We will color this row
     sheetData.push([]);
   };
 
@@ -332,15 +328,15 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       penalty: teamStats.stats.penalty,
     };
 
-    Object.entries(summary).forEach(([key, value]) => {
-      sheetData.push([STAT_LABELS[key] || key, value ?? 0]);
+    Object.entries(summary).forEach(([k, v]) => {
+      sheetData.push([STAT_LABELS[k] || k, v ?? 0]);
     });
 
     sheetData.push([]);
   };
 
   const addActions = (title, actions) => {
-    sheetData.push([title]);
+    sheetData.push([title]); // heading
     sheetData.push([]);
 
     sheetData.push([
@@ -353,12 +349,11 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       "Penalty Minutes",
       "Penalty Seconds",
       "Infraction",
-      "Created At"
     ]);
 
-    actions.forEach((a) =>
+    actions.forEach((a) => {
       sheetData.push([
-        STAT_LABELS[a.type] || a.type,  // <-- LABEL APPLIED HERE
+        STAT_LABELS[a.type] || a.type,
         "#" + a.playerNo,
         a.quarter,
         a.minute ?? "",
@@ -367,36 +362,72 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
         a.penaltyMinutes ?? "",
         a.penaltySeconds ?? "",
         a.infraction ?? "",
-        a.createdAt ? new Date(a.createdAt).toISOString() : "",
-      ])
-    );
+      ]);
+    });
 
     sheetData.push([]);
   };
 
-  // ----------- HOME SUMMARY -----------
+  // ---------- BUILD SECTIONS ----------
   addSection("HOME TEAM SUMMARY");
   addSummary(stats.homeTeam);
 
-  // ----------- HOME ACTIONS -----------
-  addActions("HOME TEAM ACTIONS", stats.actions.filter(a => a.team === "home"));
+  addActions(
+    "HOME TEAM ACTIONS",
+    stats.actions.filter((x) => x.team === "home")
+  );
 
-  // ----------- AWAY SUMMARY -----------
   addSection("AWAY TEAM SUMMARY");
   addSummary(stats.awayTeam);
 
-  // ----------- AWAY ACTIONS -----------
-  addActions("AWAY TEAM ACTIONS", stats.actions.filter(a => a.team === "away"));
+  addActions(
+    "AWAY TEAM ACTIONS",
+    stats.actions.filter((x) => x.team === "away")
+  );
 
-  // ------------ BUILD EXCEL ------------
+  // ---------- CONVERT TO SHEET ----------
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
+  // ---------- AUTO COLUMN WIDTH ----------
+  const colWidths = [];
+  sheetData.forEach((row) => {
+    row.forEach((val, idx) => {
+      const text = val ? String(val) : "";
+      colWidths[idx] = Math.max(colWidths[idx] || 8, text.length + 2);
+    });
+  });
+  ws["!cols"] = colWidths.map((w) => ({ wch: w }));
+
+  // ---------- COLOR ONLY SECTION HEADINGS ----------
+  Object.keys(ws).forEach((cellAddr) => {
+    const cell = ws[cellAddr];
+    if (!cell || !cell.v) return;
+
+    const rowNum = parseInt(cellAddr.replace(/[A-Z]/g, ""), 10);
+
+    // Section titles exist where sheetData[row][0] = title AND row+1 is blank
+    const isSectionHeading =
+      sheetData[rowNum - 1] &&
+      sheetData[rowNum - 1].length === 1 &&
+      typeof sheetData[rowNum - 1][0] === "string" &&
+      sheetData[rowNum] &&
+      sheetData[rowNum].length === 0;
+
+    if (isSectionHeading) {
+      cell.s = {
+        fill: { fgColor: { rgb: "D9EAF7" } }, // light blue
+        font: { bold: true },
+      };
+    }
+  });
+
   XLSX.utils.book_append_sheet(wb, ws, "Game Statistics");
 
-  const excelBuffer = XLSX.write(wb, {
+  const buffer = XLSX.write(wb, {
     type: "buffer",
     bookType: "xlsx",
+    cellStyles: true,
   });
 
   res.setHeader(
@@ -408,8 +439,9 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
 
-  return res.send(excelBuffer);
+  return res.send(buffer);
 });
+
 
 module.exports = {
   createGame,
