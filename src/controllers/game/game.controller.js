@@ -334,6 +334,8 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   const stats = await gameStatisticsService.getStatsByGameId(id);
   if (!stats) throw new ApiError(404, "Game statistics not found");
 
+  const XlsxPopulate = require("xlsx-populate");
+
   // ---------- LABEL MAP ----------
   const STAT_LABELS = {
     score: "Score",
@@ -348,7 +350,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     goal: "Goal",
     penalty: "Penalty",
 
-    // Actions
+    // Action type mapping
     shot_on: "Shot SOG",
     shot_off: "Shot Off",
     ground_ball: "Ground Ball",
@@ -358,67 +360,71 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
     to_u: "TO - U",
   };
 
-  // ---------- INITIALIZE EXCEL ----------
+  let row = 1; // tracking row number
+
   const workbook = await XlsxPopulate.fromBlankAsync();
-  const sheet = workbook.sheet(0).name("Game Statistics");
+  const sheet = workbook.sheet(0);
 
-  let row = 1;
-
-  // Helper: Format section header
+  // ---------- HEADER SECTION STYLE ----------
   const addSection = (title) => {
-    sheet.cell(row, 1).value(title).style({
-      bold: true,
-      fill: "D9EAF7"
-    });
-    row++;
+    sheet.row(row).height(28);
 
-    row++; // spacer
+    // Apply full-width color style for columns A–P
+    sheet.range(row, 1, row, 16).style({
+      fill: "4A90E2",        // Blue
+      fontColor: "FFFFFF",   // White text
+      bold: true,
+      horizontalAlignment: "left",
+      verticalAlignment: "center"
+    });
+
+    sheet.cell(row, 1).value(title);
+
+    row++;
+    row++;
   };
 
-  // Helper: Add Summary Block
-  const addSummary = (team) => {
+  // ---------- SUMMARY TABLE ----------
+  const addSummary = (teamStats) => {
     const summary = {
-      score: team.score,
-      shotOn: team.stats.shotOn,
-      shotOff: team.stats.shotOff,
-      save: team.stats.save,
-      groundBall: team.stats.groundBall,
-      drawW: team.stats.drawW,
-      drawL: team.stats.drawL,
-      turnoverForced: team.stats.turnoverForced,
-      turnoverUnforced: team.stats.turnoverUnforced,
-      goal: team.stats.goal,
-      penalty: team.stats.penalty,
+      score: teamStats.score,
+      shotOn: teamStats.stats.shotOn,
+      shotOff: teamStats.stats.shotOff,
+      save: teamStats.stats.save,
+      groundBall: teamStats.stats.groundBall,
+      drawW: teamStats.stats.drawW,
+      drawL: teamStats.stats.drawL,
+      turnoverForced: teamStats.stats.turnoverForced,
+      turnoverUnforced: teamStats.stats.turnoverUnforced,
+      goal: teamStats.stats.goal,
+      penalty: teamStats.stats.penalty,
     };
 
-    // Labels row
-    let col = 1;
-    Object.keys(summary).forEach((k) => {
-      sheet.cell(row, col).value(STAT_LABELS[k] || k).style({ bold: true });
-      col++;
+    // Header row
+    Object.keys(summary).forEach((k, i) => {
+      sheet.cell(row, i + 1).value(STAT_LABELS[k] || k).style({
+        bold: true,
+        fill: "333333",
+        fontColor: "FFFFFF",
+        horizontalAlignment: "center"
+      });
     });
     row++;
 
-    // Values row
-    col = 1;
-    Object.values(summary).forEach((v) => {
-      sheet.cell(row, col).value(v ?? 0);
-      col++;
+    // Value row
+    Object.values(summary).forEach((v, i) => {
+      sheet.cell(row, i + 1).value(v ?? 0).style({
+        horizontalAlignment: "left"
+      });
     });
     row++;
 
-    row++; // spacer
+    row++;
   };
 
-  // Helper: Add Actions Table
+  // ---------- ACTIONS TABLE ----------
   const addActions = (title, actions) => {
-    sheet.cell(row, 1).value(title).style({
-      bold: true,
-      fill: "D9EAF7"
-    });
-    row++;
-
-    row++; // spacer
+    addSection(title);
 
     const headers = [
       "Type",
@@ -429,40 +435,55 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       "Penalty Type",
       "Penalty Minutes",
       "Penalty Seconds",
-      "Infraction"
+      "Infraction",
     ];
 
-    // Header
-    headers.forEach((h, i) => {
-      sheet.cell(row, i + 1).value(h).style({ bold: true });
+    // Header row style
+    sheet.range(row, 1, row, headers.length).style({
+      fill: "333333",
+      fontColor: "FFFFFF",
+      bold: true,
+      horizontalAlignment: "center",
+      verticalAlignment: "center"
     });
+
+    headers.forEach((h, i) => sheet.cell(row, i + 1).value(h));
     row++;
 
-    // Rows
+    // Data rows
     actions.forEach((a) => {
-      sheet.cell(row, 1).value(STAT_LABELS[a.type] || a.type);
-      sheet.cell(row, 2).value("#" + a.playerNo);
-      sheet.cell(row, 3).value(a.quarter);
-      sheet.cell(row, 4).value(a.minute ?? "");
-      sheet.cell(row, 5).value(a.second ?? "");
-      sheet.cell(row, 6).value(a.penaltyType ?? "");
-      sheet.cell(row, 7).value(a.penaltyMinutes ?? "");
-      sheet.cell(row, 8).value(a.penaltySeconds ?? "");
-      sheet.cell(row, 9).value(a.infraction ?? "");
+      const values = [
+        STAT_LABELS[a.type] || a.type,
+        "#" + a.playerNo,
+        a.quarter,
+        a.minute ?? "",
+        a.second ?? "",
+        a.penaltyType ?? "",
+        a.penaltyMinutes ?? "",
+        a.penaltySeconds ?? "",
+        a.infraction ?? "",
+      ];
+
+      values.forEach((value, i) => {
+        sheet
+          .cell(row, i + 1)
+          .value(value)
+          .style({ horizontalAlignment: "left" });
+      });
 
       row++;
     });
 
-    row++; // spacer
+    row++;
   };
 
-  // ---------- BUILD SECTIONS ----------
+  // ---------- BUILD SHEET ----------
   addSection("HOME TEAM SUMMARY");
   addSummary(stats.homeTeam);
 
   addActions(
     "HOME TEAM ACTIONS",
-    stats.actions.filter((a) => a.team === "home")
+    stats.actions.filter((x) => x.team === "home")
   );
 
   addSection("AWAY TEAM SUMMARY");
@@ -470,34 +491,18 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   addActions(
     "AWAY TEAM ACTIONS",
-    stats.actions.filter((a) => a.team === "away")
+    stats.actions.filter((x) => x.team === "away")
   );
 
-  // ---------- AUTO COLUMN WIDTHS ----------
-  const used = sheet.usedRange();
-  if (used) {
-    const start = used.startCell();
-    const end = used.endCell();
-    const lastRow = end.rowNumber();
-    const lastCol = end.columnNumber();
+  // ---------- AUTO column width ----------
+  sheet.usedRange().forEach((cell) => {
+    const col = cell.column();
+    const value = String(cell.value() || "");
+    const width = Math.max(col.width(), value.length + 2);
+    col.width(width);
+  });
 
-    for (let col = 1; col <= lastCol; col++) {
-      let maxLen = 8;
-
-      for (let r = 1; r <= lastRow; r++) {
-        const cell = sheet.cell(r, col);
-        const val = cell.value();
-
-        if (val != null) {
-          maxLen = Math.max(maxLen, String(val).length + 2);
-        }
-      }
-
-      sheet.column(col).width(maxLen);
-    }
-  }
-
-  // ---------- SEND FILE ----------
+  // ---------- EXPORT ----------
   const buffer = await workbook.outputAsync();
 
   res.setHeader(
