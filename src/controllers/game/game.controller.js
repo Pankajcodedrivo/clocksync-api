@@ -366,14 +366,23 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   let row = 1;
 
-  // Helper: Format section header
-  const addSection = (title) => {
-    sheet.cell(row, 1).value(title).style({
-      bold: true,
-      fill: "D9EAF7"
-    });
-    row++;
+  // Helper: FULL ROW TITLE STYLE
+  const applyFullRowTitle = (title) => {
+    const startCol = 1;
+    const endCol = 9; // Adjust if needed
 
+    sheet.range(row, startCol, row, endCol).merged(true);
+
+    sheet.cell(row, startCol).value(title).style({
+      bold: true,
+      fontColor: "FFFFFF",          // white text
+      horizontalAlignment: "center",
+      verticalAlignment: "center",
+      fill: "4472C4",               // dark blue background
+      fontSize: 14,
+    });
+
+    row++;
     row++; // spacer
   };
 
@@ -414,13 +423,7 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   // Helper: Add Actions Table
   const addActions = (title, actions) => {
-    sheet.cell(row, 1).value(title).style({
-      bold: true,
-      fill: "D9EAF7"
-    });
-    row++;
-
-    row++; // spacer
+    applyFullRowTitle(title); // SAME title style
 
     const headers = [
       "Type",
@@ -434,13 +437,13 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       "Infraction"
     ];
 
-    // Header
+    // Header row
     headers.forEach((h, i) => {
       sheet.cell(row, i + 1).value(h).style({ bold: true });
     });
     row++;
 
-    // Rows
+    // Data rows
     actions.forEach((a) => {
       sheet.cell(row, 1).value(STAT_LABELS[a.type] || a.type);
       sheet.cell(row, 2).value("#" + a.playerNo);
@@ -451,7 +454,6 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       sheet.cell(row, 7).value(a.penaltyMinutes ?? "");
       sheet.cell(row, 8).value(a.penaltySeconds ?? "");
       sheet.cell(row, 9).value(a.infraction ?? "");
-
       row++;
     });
 
@@ -459,26 +461,19 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   };
 
   // ---------- BUILD SECTIONS ----------
-  addSection("HOME TEAM SUMMARY");
+  applyFullRowTitle("HOME TEAM SUMMARY");
   addSummary(stats.homeTeam);
 
-  addActions(
-    "HOME TEAM ACTIONS",
-    stats.actions.filter((a) => a.team === "home")
-  );
+  addActions("HOME TEAM ACTIONS", stats.actions.filter((a) => a.team === "home"));
 
-  addSection("AWAY TEAM SUMMARY");
+  applyFullRowTitle("AWAY TEAM SUMMARY");
   addSummary(stats.awayTeam);
 
-  addActions(
-    "AWAY TEAM ACTIONS",
-    stats.actions.filter((a) => a.team === "away")
-  );
+  addActions("AWAY TEAM ACTIONS", stats.actions.filter((a) => a.team === "away"));
 
   // ---------- AUTO COLUMN WIDTHS ----------
   const used = sheet.usedRange();
   if (used) {
-    const start = used.startCell();
     const end = used.endCell();
     const lastRow = end.rowNumber();
     const lastCol = end.columnNumber();
@@ -487,12 +482,8 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       let maxLen = 8;
 
       for (let r = 1; r <= lastRow; r++) {
-        const cell = sheet.cell(r, col);
-        const val = cell.value();
-
-        if (val != null) {
-          maxLen = Math.max(maxLen, String(val).length + 2);
-        }
+        const val = sheet.cell(r, col).value();
+        if (val != null) maxLen = Math.max(maxLen, String(val).length + 2);
       }
 
       sheet.column(col).width(maxLen);
@@ -502,17 +493,12 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   // ---------- SEND FILE ----------
   const buffer = await workbook.outputAsync();
 
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="game_statistics_${id}.xlsx"`
-  );
-  res.setHeader(
-    "Content-Type",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  );
+  res.setHeader("Content-Disposition", `attachment; filename="game_statistics_${id}.xlsx"`);
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(buffer);
 });
+
 
 // ----------------------------------------------------
 // EXPORT HANDLERS
