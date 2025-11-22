@@ -332,7 +332,7 @@ const getGameScoreByGameId = catchAsync(async (req, res) => {
 // ----------------------------------------------------
 const downloadGameStatistics = catchAsync(async (req, res) => {
   const { id } = req.params;
-
+  const game = await service.getByGameId(id);
   const stats = await gameStatisticsService.getStatsByGameId(id);
   if (!stats) throw new ApiError(404, "Game statistics not found");
 
@@ -461,15 +461,15 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
   };
 
   // ---------- BUILD SECTIONS ----------
-  applyFullRowTitle("HOME TEAM SUMMARY");
+  applyFullRowTitle(game.homeTeamName + " TEAM SUMMARY");
   addSummary(stats.homeTeam);
 
-  addActions("HOME TEAM ACTIONS", stats.actions.filter((a) => a.team === "home"));
+  addActions(game.homeTeamName + " TEAM ACTIONS", stats.actions.filter((a) => a.team === "home"));
 
-  applyFullRowTitle("AWAY TEAM SUMMARY");
+  applyFullRowTitle(game.awayTeamName + " TEAM SUMMARY");
   addSummary(stats.awayTeam);
 
-  addActions("AWAY TEAM ACTIONS", stats.actions.filter((a) => a.team === "away"));
+  addActions(game.awayTeamName + " TEAM ACTIONS", stats.actions.filter((a) => a.team === "away"));
 
   // ---------- AUTO COLUMN WIDTHS ----------
   const used = sheet.usedRange();
