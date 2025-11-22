@@ -272,14 +272,44 @@ const getGameScoreByGameId = catchAsync(async (req, res) => {
   const gameStatistics = await gameStatisticsService.getStatsByGameId(id);
   res.status(200).json({ game, gameStatistics, field: game.fieldId });
 });
+
 const downloadGameStatistics = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const stats = await gameStatisticsService.getStatsByGameId(id);
   if (!stats) throw new ApiError(404, "Game statistics not found");
 
+  // ------------ LABEL MAP -------------
+  const STAT_LABELS = {
+    score: "Score",
+    shotOn: "Shot SOG",
+    shotOff: "Shot Off",
+    save: "Saves",
+    groundBall: "Ground Ball",
+    drawW: "Draw W",
+    drawL: "Draw L",
+    turnoverForced: "TO - F",
+    turnoverUnforced: "TO - U",
+    goal: "Goal",
+    penalty: "Penalty",
+    clear_success: "Clear Success",
+
+    // EVENT TYPES (Action Schema)
+    shot_on: "Shot SOG",
+    shot_off: "Shot Off",
+    save: "Save",
+    ground_ball: "Ground Ball",
+    draw_w: "Draw W",
+    draw_l: "Draw L",
+    to_f: "TO - F",
+    to_u: "TO - U",
+    goal: "Goal",
+    penalty: "Penalty",
+  };
+
   const sheetData = [];
 
+  // ----------- HELPERS --------------
   const addSection = (title) => {
     sheetData.push([title]);
     sheetData.push([]);
@@ -287,17 +317,25 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   const addSummary = (teamStats) => {
     sheetData.push(["Type", "Value"]);
-    sheetData.push(["Score", teamStats.score]);
-    sheetData.push(["Shots On", teamStats.stats.shotOn]);
-    sheetData.push(["Shots Off", teamStats.stats.shotOff]);
-    sheetData.push(["Saves", teamStats.stats.save]);
-    sheetData.push(["Ground Balls", teamStats.stats.groundBall]);
-    sheetData.push(["Draw Win", teamStats.stats.drawW]);
-    sheetData.push(["Draw Lose", teamStats.stats.drawL]);
-    sheetData.push(["Turnover Forced", teamStats.stats.turnoverForced]);
-    sheetData.push(["Turnover Unforced", teamStats.stats.turnoverUnforced]);
-    sheetData.push(["Goals", teamStats.stats.goal]);
-    sheetData.push(["Penalties", teamStats.stats.penalty]);
+
+    const summary = {
+      score: teamStats.score,
+      shotOn: teamStats.stats.shotOn,
+      shotOff: teamStats.stats.shotOff,
+      save: teamStats.stats.save,
+      groundBall: teamStats.stats.groundBall,
+      drawW: teamStats.stats.drawW,
+      drawL: teamStats.stats.drawL,
+      turnoverForced: teamStats.stats.turnoverForced,
+      turnoverUnforced: teamStats.stats.turnoverUnforced,
+      goal: teamStats.stats.goal,
+      penalty: teamStats.stats.penalty,
+    };
+
+    Object.entries(summary).forEach(([key, value]) => {
+      sheetData.push([STAT_LABELS[key] || key, value ?? 0]);
+    });
+
     sheetData.push([]);
   };
 
@@ -307,7 +345,6 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
     sheetData.push([
       "Type",
-      "Team",
       "Player No",
       "Quarter",
       "Minute",
@@ -319,11 +356,10 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
       "Created At"
     ]);
 
-    actions.forEach(a =>
+    actions.forEach((a) =>
       sheetData.push([
-        a.type,
-        a.team,
-        a.playerNo,
+        STAT_LABELS[a.type] || a.type,  // <-- LABEL APPLIED HERE
+        "#" + a.playerNo,
         a.quarter,
         a.minute ?? "",
         a.second ?? "",
@@ -331,33 +367,33 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
         a.penaltyMinutes ?? "",
         a.penaltySeconds ?? "",
         a.infraction ?? "",
-        a.createdAt ? new Date(a.createdAt).toISOString() : ""
+        a.createdAt ? new Date(a.createdAt).toISOString() : "",
       ])
     );
 
     sheetData.push([]);
   };
 
-  // Build structure
+  // ----------- HOME SUMMARY -----------
   addSection("HOME TEAM SUMMARY");
   addSummary(stats.homeTeam);
 
-  addSection("HOME TEAM ACTIONS");
-  addActions("Home Actions", stats.actions.filter(a => a.team === "home"));
+  // ----------- HOME ACTIONS -----------
+  addActions("HOME TEAM ACTIONS", stats.actions.filter(a => a.team === "home"));
 
+  // ----------- AWAY SUMMARY -----------
   addSection("AWAY TEAM SUMMARY");
   addSummary(stats.awayTeam);
 
-  addSection("AWAY TEAM ACTIONS");
-  addActions("Away Actions", stats.actions.filter(a => a.team === "away"));
+  // ----------- AWAY ACTIONS -----------
+  addActions("AWAY TEAM ACTIONS", stats.actions.filter(a => a.team === "away"));
 
-  // Create sheet
+  // ------------ BUILD EXCEL ------------
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
   XLSX.utils.book_append_sheet(wb, ws, "Game Statistics");
 
-  // Write
   const excelBuffer = XLSX.write(wb, {
     type: "buffer",
     bookType: "xlsx",
@@ -374,7 +410,6 @@ const downloadGameStatistics = catchAsync(async (req, res) => {
 
   return res.send(excelBuffer);
 });
-
 
 module.exports = {
   createGame,
