@@ -49,7 +49,7 @@ const ActionEventSchema = new mongoose.Schema({
         required: true
     },
     team: { type: String, enum: ['home', 'away'], required: true },
-    playerNo: { type: Number, required: true },
+    playerNo: { type: Number },
     // When?
     quarter: { type: Number, required: true },
     minute: { type: Number, default: 0 },

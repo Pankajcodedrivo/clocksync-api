@@ -24,11 +24,11 @@ const envVarsSchema = Joi.object()
     JWT_ALGO: Joi.string()
       .description('Token Algorithm for encryption')
       .required(),
-    SENDGRID_API_KEY: Joi.string().description(
-      'Please provide sendgrid api key',
+    APPEMAIL: Joi.string().description(
+      'Please provide app email',
     ),
-    EMAIL_FROM: Joi.string().description(
-      'the from field in the emails sent by the app',
+    APPPASSWORD: Joi.string().description(
+      'Please provide app password',
     ),
     S3_BUCKET_PATH: Joi.string().description('BUCKET PATH for AWS s3 bucket'),
     AWS_ACCESS_KEY_ID: Joi.string().required().description('AWS access key ID'),
@@ -66,10 +66,10 @@ module.exports = {
     algo: envVars.JWT_ALGO,
   },
   email: {
-    sg: {
-      sendGridApiKey: envVars.SENDGRID_API_KEY,
+    gmail: {
+      APPEMAIL: envVars.APPEMAIL,
+      APPPASSWORD: envVars.APPPASSWORD,
     },
-    from: envVars.EMAIL_FROM,
   },
   s3: {
     AWS_S3_BUCKET: envVars.AWS_S3_BUCKET,

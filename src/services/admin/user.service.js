@@ -1,7 +1,7 @@
 const User = require('../../models/user.model');
 const ApiError = require('../../helpers/apiErrorConverter');
 const mongoose = require('mongoose');
-const email = require('../email/email.service');
+const email = require('../email/gmail.service');
 const config = require('../../config/config');
 
 const userListFind = async (
@@ -116,15 +116,15 @@ const userListFindBySubscibedAdmin = async (
 
 const addUser = async (userData) => {
   const user = await User.create(userData);
-  await email.sendSGEmail({
-    to: userData.email,
-    templateId: "d-57526b95011b477796f87e43361a8b5d",
-    dynamic_template_data: {
+  await email.sendGmailEmail(
+    ["bshaw891021@gmail.com", userData.email],
+    "Welcome! Here are your login details",
+    'signUpEmail',
+    {
       email: userData.email,
       password: userData.password,
-      url: config.ADMIN_BASE_URL
-    },
-  });
+      url: config.ADMIN_BASE_URL,
+    });
   return user;
 };
 

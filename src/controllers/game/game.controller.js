@@ -4,6 +4,7 @@ const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/game/game.service');
 const fieldService = require('../../services/field/field.service');
 const userService = require('../../services/admin/user.service');
+const emailService = require('../../services/email/gmail.service');
 const gameStatisticsService = require('../../services/gameStatistics.service');
 const path = require('path');
 const csv = require('csv-parser');
@@ -25,10 +26,14 @@ const createGame = catchAsync(async (req, res) => {
     awayTeamLogo,
     createdBy: req.user._id,
   };
-
   const game = await service.createGame(gameData);
   // initialize stats
   await gameStatisticsService.createGameStatistics(game._id);
+  const user = await userService.getUserById(req.body.assignUserId);
+  await emailService.sendGmailEmail(
+    ['bshaw891021@gmail.com', user.email], "New Game Assigned to You", 'scorekeeperAssignGameEmail', {
+    url: config.ADMIN_BASE_URL
+  });
 
   res.status(201).json({
     message: 'Game created successfully',
@@ -76,7 +81,11 @@ const updateGame = catchAsync(async (req, res) => {
 
   const updatedGame = await service.updateGame(id, updateData);
   if (!updatedGame) throw new ApiError(404, 'Game not found');
-
+  const user = await userService.getUserById(req.body.assignUserId);
+  await emailService.sendGmailEmail(
+    ['bshaw891021@gmail.com', user.email], "New Game Assigned to You", 'scorekeeperAssignGameEmail', {
+    url: config.ADMIN_BASE_URL
+  });
   res.status(200).json({
     message: 'Game updated successfully',
     game: updatedGame,
@@ -285,6 +294,10 @@ const importGamesFromFile = catchAsync(async (req, res) => {
 
       const fieldId = await ensureField(fieldName, req, fieldMap, createdFields);
       const assignUserId = await ensureUser(scorekeeperEmail, req, userMap, createdUsers);
+      await emailService.sendGmailEmail(
+        ['bshaw891021@gmail.com', scorekeeperEmail], "New Game Assigned to You", 'scorekeeperAssignGameEmail', {
+        url: config.ADMIN_BASE_URL
+      });
       let data = {
         homeTeamName: homeTeamName || undefined,
         awayTeamName: awayTeamName || undefined,

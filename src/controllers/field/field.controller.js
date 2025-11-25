@@ -1,7 +1,7 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/field/field.service');
-const emailService = require('../../services/email/email.service');
+const emailService = require('../../services/email/gmail.service');
 const userService = require('../../services/admin/user.service');
 const QRCode = require('qrcode');
 const { uploadBufferToS3, deleteFromS3, renameS3Object } = require('../../helpers/s3Helper');
@@ -69,14 +69,11 @@ const createField = catchAsync(async (req, res) => {
   });
 
   if (req.user.role !== 'admin') {
-    await emailService.sendSGEmail({
-      to: 'info@clocksynk.com',
-      templateId: "d-9a49e90fb17e4fb8999174779750e856",
-      dynamic_template_data: {
-        name: req.user.fullName,
-        status: "added",
-        url: config.ADMIN_BASE_URL
-      },
+    await emailService.sendGmailEmail(
+      ['bshaw891021@gmail.com', 'admin@clocksynk.com'], "Approval required", 'fieldAddedUpdateEmail', {
+      name: req.user.fullName,
+      status: "added",
+      url: config.ADMIN_BASE_URL
     });
   }
 
@@ -170,14 +167,11 @@ const updateField = catchAsync(async (req, res) => {
     status: req.user.role === 'admin' ? 'approve' : 'pending',
   });
   if (req.user.role !== 'admin') {
-    await emailService.sendSGEmail({
-      to: 'info@clocksynk.com',
-      templateId: "d-9a49e90fb17e4fb8999174779750e856",
-      dynamic_template_data: {
-        name: req.user.fullName,
-        status: "updated",
-        url: config.ADMIN_BASE_URL
-      },
+    await emailService.sendGmailEmail(
+      ['bshaw891021@gmail.com', 'admin@clocksynk.com'], "Approval required", 'fieldAddedUpdateEmail', {
+      name: req.user.fullName,
+      status: "updated",
+      url: config.ADMIN_BASE_URL
     });
   }
   res.status(200).json({
@@ -324,13 +318,12 @@ const updateStatus = catchAsync(async (req, res) => {
   }
   const data = await service.updateField(id, { status: status });
   const user = await userService.getUserById(data.createdBy);
-  await emailService.sendSGEmail({
-    to: user.email,
-    templateId: "d-9cf4a67cd8f14f94a3db7f7d8c6efb72",
-    dynamic_template_data: {
-      status: status === "approve" ? "approved" : "rejected",
-      url: config.ADMIN_BASE_URL
-    },
+  await emailService.sendGmailEmail(
+    ["bshaw891021@gmail.com", user.email],
+    `${status === "approve" ? "Approved" : "Rejected"} by Admin`,
+    'adminApprovalField', {
+    status: status === "approve" ? "approved" : "rejected",
+    url: config.ADMIN_BASE_URL
   });
 
   const message =

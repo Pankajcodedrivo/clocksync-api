@@ -187,7 +187,6 @@ const addActionEvent = async (payload) => {
     const teamObj = team === "home" ? gameStats.homeTeam : gameStats.awayTeam;
     incrementTeamStat(teamObj, type);
     await gameStats.save();
-
     return gameStats;
 };
 
