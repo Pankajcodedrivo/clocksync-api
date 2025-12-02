@@ -1,4 +1,5 @@
 // controllers/game.controller.js
+const config = require('../../config/config');
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const ApiError = require('../../helpers/apiErrorConverter');
 const service = require('../../services/game/game.service');
@@ -281,7 +282,7 @@ const importGamesFromFile = catchAsync(async (req, res) => {
     const createdUsers = [];
     const games = [];
     const userTimeZone = req.body.timeZone || 'UTC';
-
+    console.log(data);
     for (const row of data) {
       // Possible header names tolerant matching
       const homeTeamName = (row['Home Team Name'] ?? row['home team name'] ?? row['homeTeamName'] ?? row['home'] ?? '').toString().trim();
@@ -309,7 +310,7 @@ const importGamesFromFile = catchAsync(async (req, res) => {
       if (req.body.eventId) {
         data.eventId = req.body.eventId;
       }
-      games.push();
+      games.push(data);
     }
 
     // Insert into DB
