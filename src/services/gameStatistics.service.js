@@ -235,6 +235,54 @@ const undoAction = async (payload) => {
 
 // ----------------------------------------------------
 
+const updatePenaltyTimeById = async (gameId, actionId) => {
+    const gameStats = await GameStatistics.findOne({ gameId });
+    if (!gameStats) return null;
+
+    const action = gameStats.actions.find(
+        a => a._id.toString() === actionId && a.type === "penalty"
+    );
+    if (!action) return gameStats;
+
+    // Current game clock (counting DOWN)
+    const { minutes: clockMin, seconds: clockSec } = gameStats.clock;
+    const current = clockMin * 60 + clockSec;
+
+    // When the penalty started
+    const start =
+        (action.startMinute ?? action.minute ?? 0) * 60 +
+        (action.startSecond ?? action.second ?? 0);
+    // Total penalty duration
+    const totalPenaltySeconds =
+        (action.penaltyMinutes ?? 0) * 60 +
+        (action.penaltySeconds ?? 0);
+    // Clock is countdown → elapsed = start - current
+    const elapsed = start - current;
+
+    // Remaining penalty time
+    //const remaining = totalPenaltySeconds - elapsed;
+
+    if (elapsed <= 0) {
+        // Expired → Do NOT clear (as you requested)
+        return gameStats;
+    }
+
+    // Convert back to minutes:seconds
+    const updatedMin = Math.floor(elapsed / 60);
+    const updatedSec = elapsed % 60;
+    //console.log(updatedMin);
+    //console.log(updatedSec);
+    // Update action
+    action.penaltyMinutes = updatedMin;
+    action.penaltySeconds = updatedSec;
+
+    gameStats.markModified("actions");
+    await gameStats.save();
+
+    return gameStats;
+};
+
+
 // ----------------------------------------------------
 // DELETE ACTION BY ID (works like undo, but for any item)
 // ----------------------------------------------------
@@ -273,5 +321,6 @@ module.exports = {
     removePenalty,
     addActionEvent,
     undoAction,
+    updatePenaltyTimeById,
     deleteAction
 };
