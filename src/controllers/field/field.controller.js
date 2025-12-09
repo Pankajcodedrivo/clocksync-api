@@ -318,6 +318,7 @@ const updateStatus = catchAsync(async (req, res) => {
   }
   const data = await service.updateField(id, { status: status });
   const user = await userService.getUserById(data.createdBy);
+  console.log(user);
   await emailService.sendGmailEmail(
     ["bshaw891021@gmail.com", user.email],
     `${status === "approve" ? "Approved" : "Rejected"} by Admin`,
