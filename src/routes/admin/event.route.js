@@ -18,5 +18,7 @@ router.patch('/update/:id', auth(['admin']), upload.fields([
 router.get('/list/:page/:limit', auth(['admin', 'event-director']), controller.listEvents);
 router.get('/detail/:id', auth(['admin']), validator.params(validationSchema.singleId), controller.getEventById);
 router.delete('/delete/:id', auth(['admin']), validator.params(validationSchema.singleId), controller.deleteEvent);
+
+router.get('/export/:id', auth(['admin']), validator.params(validationSchema.singleId), controller.exportEventGames);
 router.get('/list-current-event', auth(['admin', 'event-director']), controller.getEventListByEventDirector);
 module.exports = router;

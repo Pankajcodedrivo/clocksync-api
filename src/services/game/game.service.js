@@ -12,8 +12,11 @@ const getByGameId = async (id) => {
 
 // ✅ Find Game by id and assigned user
 const getGameByIdAndUserId = async (_id, assignUserId) => {
-  console.log(assignUserId);
   return Game.findOne({ _id, assignUserId }).populate("fieldId");
+};
+
+const getGameByEventId = async (eventId) => {
+  return Game.findOne({ eventId }).populate("fieldId");
 };
 
 // ✅ Update Game (prevent endDateTime update after endGame=true)
@@ -194,4 +197,5 @@ module.exports = {
   autoEndGames,
   endGameManually,
   insertMany,
+  getGameByEventId
 };

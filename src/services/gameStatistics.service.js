@@ -1,3 +1,4 @@
+const gameStatisticsModel = require("../models/gameStatistics.model");
 const GameStatistics = require("../models/gameStatistics.model");
 
 // Create stats for new game
@@ -310,6 +311,10 @@ const deleteAction = async ({ gameId, actionId }) => {
     return gameStats;
 };
 
+const findData = async (params) => {
+    return gameStatisticsModel.find(params).lean();
+}
+
 module.exports = {
     createGameStatistics,
     getStatsByGameId,
@@ -322,5 +327,6 @@ module.exports = {
     addActionEvent,
     undoAction,
     updatePenaltyTimeById,
-    deleteAction
+    deleteAction,
+    findData
 };
