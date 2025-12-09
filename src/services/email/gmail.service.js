@@ -56,7 +56,7 @@ const sendGmailEmail = async (to, subject, templateName, variables = {}) => {
 
         await transporter.sendMail(mailOptions);
         logger.info(`Email sent to ${to}`);
-
+        console.log(`Email sent to ${to}`)
     } catch (error) {
         console.error(error);
         logger.error(error);
