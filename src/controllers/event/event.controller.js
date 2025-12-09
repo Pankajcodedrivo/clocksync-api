@@ -172,7 +172,7 @@ const exportEventGames = catchAsync(async (req, res) => {
     headers.forEach((h, i) => {
       sheet.cell(row, i + 1).value(h).style({
         bold: true,
-        fill: GREY,
+        fill: BLUE,
         border: true,
         horizontalAlignment: "center",
       });
@@ -281,7 +281,7 @@ const exportEventGames = catchAsync(async (req, res) => {
     headers.forEach((h, i) => {
       sheet.cell(row, i + 1).value(h).style({
         bold: true,
-        fill: GREY,
+        fill: BLUE,
         border: true,
         horizontalAlignment: "center",
       });
