@@ -16,7 +16,7 @@ const getGameByIdAndUserId = async (_id, assignUserId) => {
 };
 
 const getGameByEventId = async (eventId) => {
-  return Game.findOne({ eventId }).populate("fieldId");
+  return Game.find({ eventId }).populate("fieldId").populate("assignUserId");
 };
 
 // ✅ Update Game (prevent endDateTime update after endGame=true)

@@ -110,69 +110,11 @@ const getEventListByEventDirector = catchAsync(async (req, res) => {
   });
 });
 
-
 const exportEventGames = catchAsync(async (req, res) => {
-  const { eventId } = req.params;
+  const { id: eventId } = req.params;
 
-  const event = await eventService.getByEventId(eventId);
-  if (!event) throw new ApiError(404, "Event not found");
-
-  const games = await gameService.getGameByEventId({ eventId });
-
-  const statsMap = {};
-  const stats = await gameStatisticsService.findData({
-    gameId: { $in: games.map((g) => g._id) }
-  });
-
-  stats.forEach(s => { statsMap[s.gameId.toString()] = s });
-
-  const BLUE = "3B82F6";
-  const GREY = "E5E7EB";
-
-  // -----------------------------
-  // Helper: Event row (A1–D1)
-  // -----------------------------
-  const addEventRowData = (sheet, event) => {
-    let row = 1;
-
-    const headers = ["Event Name", "Start Date", "End Date", "Event Director"];
-    const values = [
-      event.eventName,
-      event.startDate ? event.startDate.toDateString() : "",
-      event.endDate ? event.endDate.toDateString() : "",
-      event.assignUserId.fullName ? event.assignUserId.fullName.toString() : ""
-    ];
-
-    // Header row
-    headers.forEach((h, i) => {
-      sheet.cell(row, i + 1)
-        .value(h)
-        .style({
-          bold: true,
-          fill: GREY,
-          border: true,
-          horizontalAlignment: "center",
-        });
-    });
-
-    row++;
-
-    // Value row
-    values.forEach((v, i) => {
-      sheet.cell(row, i + 1)
-        .value(v)
-        .style({
-          border: true,
-          horizontalAlignment: "left",
-        });
-    });
-
-    return row + 2; // Next available row
-  };
-
-  // -----------------------------
-  // Label dictionary
-  // -----------------------------
+  // Fetch event
+  // ---------- LABEL MAP ----------
   const STAT_LABELS = {
     score: "Score",
     shotOn: "Shot SOG",
@@ -194,72 +136,182 @@ const exportEventGames = catchAsync(async (req, res) => {
     draw_l: "Draw L",
     to_f: "TO - F",
     to_u: "TO - U",
-    goal: "Goal",
-    penalty: "Penalty",
+  };
+
+  const event = await eventService.getByEventId(eventId);
+  if (!event) throw new ApiError(404, "Event not found");
+
+  // Fetch games and normalize to empty array
+  const games = (await gameService.getGameByEventId(eventId)) ?? [];
+
+  // Safe stats query
+  let statsMap = {};
+  if (games.length > 0) {
+    const stats = await gameStatisticsService.findData({
+      gameId: { $in: games.map(g => g._id) },
+    });
+    stats.forEach(s => {
+      statsMap[s.gameId.toString()] = s;
+    });
+  }
+
+  const BLUE = "3B82F6";
+  const GREY = "E5E7EB";
+
+  // =============== Event Row Helper =====================
+  const addEventRowData = (sheet, event) => {
+    let row = 1;
+    const headers = ["Event Name", "Start Date", "End Date", "Event Director"];
+    const values = [
+      event.eventName,
+      event.startDate ? event.startDate.toDateString() : "",
+      event.endDate ? event.endDate.toDateString() : "",
+      event.assignUserId?.fullName ?? "",
+    ];
+
+    headers.forEach((h, i) => {
+      sheet.cell(row, i + 1).value(h).style({
+        bold: true,
+        fill: GREY,
+        border: true,
+        horizontalAlignment: "center",
+      });
+    });
+
+    row++;
+    values.forEach((v, i) => {
+      sheet.cell(row, i + 1).value(v).style({
+        border: true,
+        horizontalAlignment: "left",
+      });
+    });
+
+    return row + 2;
+  };
+
+  // ===== AUTO-WIDTH HELPER =====
+  const applyAutoWidth = (sheet) => {
+    const used = sheet.usedRange();
+    if (!used) return;
+
+    const end = used.endCell();
+    const lastRow = end.rowNumber();
+    const lastCol = end.columnNumber();
+
+    for (let col = 1; col <= lastCol; col++) {
+      let max = 12;
+      for (let r = 1; r <= lastRow; r++) {
+        const v = sheet.cell(r, col).value();
+        if (v != null) max = Math.max(max, String(v).length + 2);
+      }
+      sheet.column(col).width(max);
+    }
+  };
+
+  // ===== UNIQUE SHEET NAME HELPER =====
+  const getUniqueSheetName = (workbook, baseName) => {
+    let name = baseName.substring(0, 31); // max 31 chars
+    let counter = 1;
+    while (workbook.sheets().some(sheet => sheet.name() === name)) {
+      const suffix = `_${counter}`;
+      const allowedLength = 31 - suffix.length;
+      name = baseName.substring(0, allowedLength) + suffix;
+      counter++;
+    }
+    return name;
   };
 
   const workbook = await XlsxPopulate.fromBlankAsync();
 
-  // ============================================
+  // ====================================
   // SHEET 0 — EVENT OVERVIEW
-  // ============================================
+  // ====================================
   const overview = workbook.sheet(0).name("Event Overview");
-
   let overviewRow = addEventRowData(overview, event);
 
-  // List each game below the event info
-  games.forEach(g => {
-    overview.cell(overviewRow, 1)
-      .value(`${g.homeTeamName} vs ${g.awayTeamName}`)
-      .style({
-        bold: true,
-        fontColor: "FFFFFF",
-        fill: BLUE,
-        fontSize: 14,
-        horizontalAlignment: "center",
-      });
-
-    // Merge across A–D
+  /* games.forEach(g => {
+    overview.cell(overviewRow, 1).value(`${g.homeTeamName} vs ${g.awayTeamName}`).style({
+      bold: true,
+      fontColor: "FFFFFF",
+      fill: BLUE,
+      fontSize: 14,
+      horizontalAlignment: "center",
+    });
     overview.range(overviewRow, 1, overviewRow, 4).merged(true);
     overviewRow += 2;
-  });
+  }); */
 
-  overview.column(1).width(25);
-  overview.column(2).width(25);
-  overview.column(3).width(25);
-  overview.column(4).width(35);
+  applyAutoWidth(overview);
 
-  // ============================================
+  // ======================================================
+  // Return only event sheet if no games
+  // ======================================================
+  if (games.length === 0) {
+    const buffer = await workbook.outputAsync();
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="event_${eventId}_statistics.xlsx"`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    return res.send(buffer);
+  }
+
+  // ======================================================
   // GAME SHEETS
-  // ============================================
-  for (let i = 0; i < games.length; i++) {
-    const game = games[i];
-    const gameStats = statsMap[game._id.toString()];
+  // ======================================================
 
-    const sheetName = `${game.homeTeamName} vs ${game.awayTeamName}`.substring(0, 31);
-    const sheet = i === 0 ? workbook.addSheet(sheetName) : workbook.addSheet(sheetName);
-
+  // =============== Event Row Helper =====================
+  const addGameRowData = (sheet, game) => {
     let row = 1;
+    //console.log(game);
+    const headers = ["Home Team", "Away Team", "Field", "Start Date", "Score Keeper"];
+    const values = [
+      game.homeTeamName,
+      game.awayTeamName,
+      game.fieldId.name,
+      game.startDateTime
+        ? new Date(game.startDateTime).toLocaleString("en-US")
+        : "",
+      game.assignUserId?.fullName ?? "",
+    ];
 
-    // -----------------------------
-    // GAME TITLE — A1 only
-    // -----------------------------
-    sheet.cell(1, 1)
-      .value(`${game.homeTeamName} vs ${game.awayTeamName}`)
-      .style({
+    headers.forEach((h, i) => {
+      sheet.cell(row, i + 1).value(h).style({
         bold: true,
-        fontColor: "FFFFFF",
-        fill: BLUE,
-        fontSize: 16,
+        fill: GREY,
+        border: true,
         horizontalAlignment: "center",
       });
+    });
 
-    row = 3; // Leave a blank row
+    row++;
+    values.forEach((v, i) => {
+      sheet.cell(row, i + 1).value(v).style({
+        border: true,
+        horizontalAlignment: "left",
+      });
+    });
 
-    // -----------------------------
-    // Team Summary Helper
-    // -----------------------------
+    return row + 2;
+  };
+  for (const game of games) {
+    const gameStats = statsMap[game._id.toString()] ?? {};
+
+    const baseName = `${game.homeTeamName} vs ${game.awayTeamName}`;
+    const sheetName = getUniqueSheetName(workbook, baseName);
+    const sheet = workbook.addSheet(sheetName);
+    let row = 1;
+    addGameRowData(sheet, game)
+
+    row = 5;
+
+    // TEAM SUMMARY HELPER
     const addSummary = (team) => {
+      if (!team || !team.stats) return;
+
       const summary = {
         score: team.score,
         shotOn: team.stats.shotOn,
@@ -274,37 +326,29 @@ const exportEventGames = catchAsync(async (req, res) => {
         penalty: team.stats.penalty,
       };
 
-      // Header
       let col = 1;
-      Object.keys(summary).forEach(k => {
-        sheet.cell(row, col).value(STAT_LABELS[k]).style({ bold: true });
+      for (const key of Object.keys(summary)) {
+        sheet.cell(row, col).value(STAT_LABELS[key] || key).style({ bold: true });
         col++;
-      });
+      }
+
       row++;
-
-      // Values
       col = 1;
-      Object.values(summary).forEach(v => {
-        sheet.cell(row, col).value(v ?? 0);
+      for (const val of Object.values(summary)) {
+        sheet.cell(row, col).value(val ?? 0);
         col++;
-      });
-
+      }
       row += 2;
     };
 
-    // -----------------------------
-    // Actions Table Helper
-    // -----------------------------
-    const addActions = (title, actions) => {
-      sheet.cell(row, 1)
-        .value(title)
-        .style({
-          bold: true,
-          fontColor: "FFFFFF",
-          fill: BLUE,
-          horizontalAlignment: "center",
-        });
-
+    // ACTIONS HELPER
+    const addActions = (title, actions = []) => {
+      sheet.cell(row, 1).value(title).style({
+        bold: true,
+        fontColor: "FFFFFF",
+        fill: BLUE,
+        horizontalAlignment: "center",
+      });
       sheet.range(row, 1, row, 9).merged(true);
       row += 2;
 
@@ -312,16 +356,13 @@ const exportEventGames = catchAsync(async (req, res) => {
         "Type", "Player No", "Quarter", "Minute", "Second",
         "Penalty Type", "Penalty Minutes", "Penalty Seconds", "Infraction"
       ];
-
-      headers.forEach((h, i) => {
-        sheet.cell(row, i + 1).value(h).style({ bold: true });
-      });
+      headers.forEach((h, i) => sheet.cell(row, i + 1).value(h).style({ bold: true }));
       row++;
 
       actions.forEach(a => {
         sheet.cell(row, 1).value(STAT_LABELS[a.type] || a.type);
         sheet.cell(row, 2).value(a.playerNo ? `#${a.playerNo}` : "");
-        sheet.cell(row, 3).value(a.quarter);
+        sheet.cell(row, 3).value(a.quarter ?? "");
         sheet.cell(row, 4).value(a.minute ?? "");
         sheet.cell(row, 5).value(a.second ?? "");
         sheet.cell(row, 6).value(a.penaltyType ?? "");
@@ -330,45 +371,39 @@ const exportEventGames = catchAsync(async (req, res) => {
         sheet.cell(row, 9).value(a.infraction ?? "");
         row++;
       });
-
       row++;
     };
 
-    // -----------------------------
-    // Build Game Sheet Content
-    // -----------------------------
-    sheet.cell(row, 1).value("Home Summary").style({ bold: true });
-    row++;
+    sheet.cell(row, 1).value(game.homeTeamName + " TEAM SUMMARY").style({
+      bold: true,
+      fontColor: "FFFFFF",
+      fill: BLUE,
+      horizontalAlignment: "center",
+    });
+    sheet.range(row, 1, row, 11).merged(true);
+    row += 2;
     addSummary(gameStats.homeTeam);
 
-    sheet.cell(row, 1).value("Away Summary").style({ bold: true });
-    row++;
+    sheet.cell(row, 1).value(game.awayTeamName + " TEAM SUMMARY").style({
+      bold: true,
+      fontColor: "FFFFFF",
+      fill: BLUE,
+      horizontalAlignment: "center",
+    });
+    sheet.range(row, 1, row, 11).merged(true);
+    row += 2;
     addSummary(gameStats.awayTeam);
 
-    addActions("Home Actions", gameStats.actions.filter(a => a.team === "home"));
-    addActions("Away Actions", gameStats.actions.filter(a => a.team === "away"));
+    addActions("Home Actions", gameStats.actions?.filter(a => a.team === "home") ?? []);
+    addActions("Away Actions", gameStats.actions?.filter(a => a.team === "away") ?? []);
 
-    // Auto column width
-    const used = sheet.usedRange();
-    if (used) {
-      const end = used.endCell();
-      const lastRow = end.rowNumber();
-      const lastCol = end.columnNumber();
-
-      for (let col = 1; col <= lastCol; col++) {
-        let max = 10;
-        for (let r = 1; r <= lastRow; r++) {
-          const v = sheet.cell(r, col).value();
-          if (v != null) max = Math.max(max, String(v).length + 2);
-        }
-        sheet.column(col).width(max);
-      }
-    }
+    applyAutoWidth(sheet);
   }
 
-  // Send File
+  // ====================================
+  // SEND FILE
+  // ====================================
   const buffer = await workbook.outputAsync();
-
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="event_${eventId}_statistics.xlsx"`
@@ -377,10 +412,8 @@ const exportEventGames = catchAsync(async (req, res) => {
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
-
   return res.send(buffer);
 });
-
 
 module.exports = {
   createEvent,
