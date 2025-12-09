@@ -70,7 +70,7 @@ const createField = catchAsync(async (req, res) => {
 
   if (req.user.role !== 'admin') {
     await emailService.sendGmailEmail(
-      ['bshaw891021@gmail.com', 'admin@clocksynk.com'], "Approval required", 'fieldAddedUpdateEmail', {
+      'admin@clocksynk.com', "Approval required", 'fieldAddedUpdateEmail', {
       name: req.user.fullName,
       status: "added",
       url: config.ADMIN_BASE_URL
@@ -168,7 +168,7 @@ const updateField = catchAsync(async (req, res) => {
   });
   if (req.user.role !== 'admin') {
     await emailService.sendGmailEmail(
-      ['bshaw891021@gmail.com', 'admin@clocksynk.com'], "Approval required", 'fieldAddedUpdateEmail', {
+      'admin@clocksynk.com', "Approval required", 'fieldAddedUpdateEmail', {
       name: req.user.fullName,
       status: "updated",
       url: config.ADMIN_BASE_URL
@@ -320,7 +320,7 @@ const updateStatus = catchAsync(async (req, res) => {
   const user = await userService.getUserById(data.createdBy);
   console.log(user);
   await emailService.sendGmailEmail(
-    ["bshaw891021@gmail.com", user.email],
+    user.email,
     `${status === "approve" ? "Approved" : "Rejected"} by Admin`,
     'adminApprovalField', {
     status: status === "approve" ? "approved" : "rejected",

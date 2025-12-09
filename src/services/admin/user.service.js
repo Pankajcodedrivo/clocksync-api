@@ -117,7 +117,7 @@ const userListFindBySubscibedAdmin = async (
 const addUser = async (userData) => {
   const user = await User.create(userData);
   await email.sendGmailEmail(
-    ["bshaw891021@gmail.com", userData.email],
+    userData.email,
     "Welcome! Here are your login details",
     'signUpEmail',
     {
