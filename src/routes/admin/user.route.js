@@ -20,6 +20,12 @@ router.get(
   controller.listEventDirector,
 );
 
+router.get(
+  '/switch-user/:id',
+  validator.params(validationSchema.singleId),
+  controller.switchUser,
+);
+
 
 router.post(
   '/add-user',

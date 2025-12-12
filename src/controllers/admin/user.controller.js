@@ -1,5 +1,6 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const service = require('../../services/admin/user.service');
+const tokenService = require('../../services/auth/token.service');
 const listUser = catchAsync(async (req, res, next) => {
   const limit = req.params.limit ? Number(req.params.limit) : 10;
   const page = req.params.page ? Number(req.params.page) : 1;
@@ -126,6 +127,39 @@ const getInvitations = catchAsync(async (req, res) => {
   );
   res.status(200).json({ status: 200, invitations });
 });
+// Switch User
+const switchUser = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ID presence
+  if (!id) {
+    throw new ApiError(400, 'User ID is required');
+  }
+
+  const user = await service.getUserById(id);
+
+  // Handle user not found
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  // Authorization check
+  if (user.role !== 'event-director') {
+    throw new ApiError(403, 'You are not authorized to switch to this account');
+  }
+
+  // Generate tokens
+  const tokens = await tokenService.generateAuthTokens(user);
+
+  res.status(200).send({
+    message: 'You have successfully switched to that account.',
+    tokens: {
+      accessToken: tokens.access,
+      refreshToken: tokens.refresh,
+    },
+    user,
+  });
+});
 
 module.exports = {
   listUser,
@@ -137,5 +171,6 @@ module.exports = {
   userBlockUnblock,
   getInvitations,
   addamount,
-  listEventDirector
+  listEventDirector,
+  switchUser
 };
