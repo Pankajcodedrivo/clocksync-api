@@ -86,8 +86,8 @@ const deleteEvent = catchAsync(async (req, res) => {
 
 
 const getEventListByEventDirector = catchAsync(async (req, res) => {
-  const { fetchData } = req.params;
-  console.log(req);
+  const { fetchData } = req.query;
+  console.log(fetchData);
   // Admin can fetch all events
   if (req.user.role === 'admin' && fetchData === 'all') {
     const events = await eventService.getEventByMatch({});
