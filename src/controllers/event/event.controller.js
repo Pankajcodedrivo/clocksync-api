@@ -86,29 +86,37 @@ const deleteEvent = catchAsync(async (req, res) => {
 
 
 const getEventListByEventDirector = catchAsync(async (req, res) => {
-  // ✅ Check role
+  const { fetchData } = req.params;
+
+  // Admin can fetch all events
+  if (req.user.role === 'admin' && fetchData === 'all') {
+    const events = await eventService.getEventByMatch({});
+    return res.status(200).json({ status: 200, events });
+  }
+
+  // Only event directors allowed beyond this point
   if (req.user.role !== 'event-director') {
     return res.status(403).json({
       status: 403,
-      message: "Only event directors can access this data"
+      message: 'Only event directors can access this data',
     });
   }
 
-  // ✅ Define today's date
+  // Today's date (start of day)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // ✅ Fetch all events assigned to the director where endDate >= today
-  const events = await eventService.getEventByMatch({
+  // Query for director-specific upcoming events
+  const query = {
     assignUserId: req.user._id,
-    endDate: { $gte: today }
-  });
+    endDate: { $gte: today },
+  };
 
-  return res.status(200).json({
-    status: 200,
-    events
-  });
+  const events = await eventService.getEventByMatch(query);
+
+  return res.status(200).json({ status: 200, events });
 });
+
 
 const exportEventGames = catchAsync(async (req, res) => {
   const { id: eventId } = req.params;
