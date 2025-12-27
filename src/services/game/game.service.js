@@ -43,10 +43,11 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
   if (user.role === 'event-director' && user._id) {
     match.createdBy = new mongoose.Types.ObjectId(user._id);
   }
-  if (user.role === 'event-director') {
-    if (eventId) {
-      match.eventId = new mongoose.Types.ObjectId(eventId);
-    } else {
+
+  if (eventId) {
+    match.eventId = new mongoose.Types.ObjectId(eventId);
+  } else {
+    if (user.role === 'event-director') {
       return {
         total: 0,
         page,
@@ -55,7 +56,6 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
         games: [],
       };
     }
-
   }
   const pipeline = [
     {
