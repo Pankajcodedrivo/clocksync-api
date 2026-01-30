@@ -23,6 +23,12 @@ router.patch('/update/:id', upload.fields([
 router.get('/list/:page/:limit', controller.listGames);
 router.get('/detail/:id', validator.params(validationSchema.singleId), controller.getGameById);
 router.delete('/delete/:id', validator.params(validationSchema.singleId), controller.deleteGame);
+router.delete(
+    '/mullti-delete',
+    validator.body(validationSchema.multipleIds),
+    controller.deleteGames
+);
+
 router.get('/download/statistics/:id', validator.params(validationSchema.singleId), controller.downloadGameStatistics);
 router.get('/getallfield', fieldController.getAllField);
 router.get('/getallScorekeeper', userController.getAllScoreKeeper);

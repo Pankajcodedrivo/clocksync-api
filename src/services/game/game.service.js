@@ -110,7 +110,7 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
 
   const games = await Game.aggregate([
     ...pipeline,
-    { $sort: { createdAt: -1 } },
+    { $sort: { startDateTime: -1 } },
     { $skip: skip },
     { $limit: limit },
   ]);
@@ -127,6 +127,15 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
 // ✅ Delete Game
 const deleteGameById = async (id) => {
   return Game.findByIdAndDelete(id);
+};
+
+// ----------------------------------------------------
+// Delete Multiple Games
+// ----------------------------------------------------
+const deleteGamesByIds = async (ids) => {
+  return Game.deleteMany({
+    _id: { $in: ids }
+  });
 };
 
 // ✅ Get game by field
@@ -197,5 +206,6 @@ module.exports = {
   autoEndGames,
   endGameManually,
   insertMany,
-  getGameByEventId
+  getGameByEventId,
+  deleteGamesByIds
 };

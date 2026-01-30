@@ -131,6 +131,28 @@ const deleteGame = catchAsync(async (req, res) => {
 });
 
 // ----------------------------------------------------
+// Delete Multiple Games
+// ----------------------------------------------------
+const deleteGames = catchAsync(async (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    throw new ApiError(400, 'Game ids are required');
+  }
+
+  const result = await service.deleteGamesByIds(ids);
+
+  if (result.deletedCount === 0) {
+    throw new ApiError(404, 'No games found to delete');
+  }
+
+  res.status(200).json({
+    message: 'Games deleted successfully',
+    deletedCount: result.deletedCount
+  });
+});
+
+// ----------------------------------------------------
 // Date parsing helpers (Excel serials, formatted strings)
 // ----------------------------------------------------
 const parseExcelDate = (value) => {
@@ -551,5 +573,6 @@ module.exports = {
   getGameByIdAndUserId,
   importGamesFromFile,
   getGameScoreByGameId,
+  deleteGames,
   downloadGameStatistics,
 };

@@ -58,12 +58,18 @@ const createGame = Joi.object({
     userTimezone: Joi.optional()
 });
 
-
+const multipleIds = Joi.object({
+    ids: Joi.array()
+        .items(Joi.string().required())
+        .min(1)
+        .required()
+});
 const singleId = Joi.object({
     id: Joi.string().length(24).hex().required()
 });
 
 module.exports = {
     createGame,
+    multipleIds,
     singleId,
 };
