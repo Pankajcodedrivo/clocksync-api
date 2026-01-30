@@ -221,7 +221,7 @@ const sheetArrayToJson = (arr2d) => {
 };
 
 // ----------------------------------------------------
-// Import Games from Excel or CSV
+// Import Games from Excel or CSV (Emails in Background)
 // ----------------------------------------------------
 const importGamesFromFile = catchAsync(async (req, res) => {
   try {
@@ -272,59 +272,80 @@ const importGamesFromFile = catchAsync(async (req, res) => {
     const createdFields = [];
     const createdUsers = [];
     const games = [];
-    const failedEmails = [];
+    const emailQueue = []; // 👈 background email queue
     const userTimeZone = req.body.timeZone || 'UTC';
 
     for (const row of data) {
-      const homeTeamName = (row['Home Team Name'] ?? row['home team name'] ?? row['homeTeamName'] ?? row['home'] ?? '').toString().trim();
-      const awayTeamName = (row['Away Team Name'] ?? row['away team name'] ?? row['awayTeamName'] ?? row['away'] ?? '').toString().trim();
-      const fieldName = (row['Field Name'] ?? row['field name'] ?? row['fieldName'] ?? row['field'] ?? '').toString().trim();
-      const scorekeeperEmail = (row['Scorekeeper Email'] ?? row['scorekeeper email'] ?? row['scorekeeperEmail'] ?? row['scorekeeper'] ?? '').toString().trim();
-      const startRaw = row['Game Start Time'] ?? row['game start time'] ?? row['startDateTime'] ?? row['start'] ?? row['Start'] ?? null;
-
-      const parsedStart = parseDateWithTimezone(startRaw, userTimeZone);
-
-      const fieldId = await ensureField(fieldName, req, fieldMap, createdFields);
-      const assignUserId = await ensureUser(scorekeeperEmail, req, userMap, createdUsers);
-
-      // ✅ Email is OPTIONAL — ignore errors
       try {
-        await emailService.sendGmailEmail(
-          scorekeeperEmail,
-          'New Game Assigned to You',
-          'scorekeeperAssignGameEmail',
-          { url: config.ADMIN_BASE_URL }
-        );
-        await delay(1500);
-      } catch (emailError) {
-        failedEmails.push(scorekeeperEmail);
-        logger.error(`Email failed for ${scorekeeperEmail}`, emailError);
+        const homeTeamName = (row['Home Team Name'] ?? row['home team name'] ?? row['homeTeamName'] ?? row['home'] ?? '').toString().trim();
+        const awayTeamName = (row['Away Team Name'] ?? row['away team name'] ?? row['awayTeamName'] ?? row['away'] ?? '').toString().trim();
+        const fieldName = (row['Field Name'] ?? row['field name'] ?? row['fieldName'] ?? row['field'] ?? '').toString().trim();
+        const scorekeeperEmail = (row['Scorekeeper Email'] ?? row['scorekeeper email'] ?? row['scorekeeperEmail'] ?? row['scorekeeper'] ?? '').toString().trim();
+        const startRaw = row['Game Start Time'] ?? row['game start time'] ?? row['startDateTime'] ?? row['start'] ?? row['Start'] ?? null;
+
+        const parsedStart = parseDateWithTimezone(startRaw, userTimeZone);
+
+        const fieldId = await ensureField(fieldName, req, fieldMap, createdFields);
+        const assignUserId = await ensureUser(scorekeeperEmail, req, userMap, createdUsers);
+
+        const gameData = {
+          homeTeamName: homeTeamName || undefined,
+          awayTeamName: awayTeamName || undefined,
+          fieldId,
+          assignUserId,
+          startDateTime: parsedStart,
+          createdBy: req.user._id,
+        };
+
+        if (req.body.eventId) {
+          gameData.eventId = req.body.eventId;
+        }
+
+        games.push(gameData);
+
+        // 👇 Queue email (do NOT send here)
+        emailQueue.push({
+          to: scorekeeperEmail,
+          subject: 'New Game Assigned to You',
+          template: 'scorekeeperAssignGameEmail',
+          vars: { url: config.ADMIN_BASE_URL },
+        });
+
+      } catch (rowError) {
+        logger.error('Row processing failed', rowError);
+        continue; // skip bad row
       }
-
-      const gameData = {
-        homeTeamName: homeTeamName || undefined,
-        awayTeamName: awayTeamName || undefined,
-        fieldId,
-        assignUserId,
-        startDateTime: parsedStart,
-        createdBy: req.user._id,
-      };
-
-      if (req.body.eventId) {
-        gameData.eventId = req.body.eventId;
-      }
-
-      games.push(gameData);
     }
 
+    // Insert games first
     await service.insertMany(games);
 
+    // ✅ Respond immediately
     res.status(200).json({
       success: true,
       message: '✅ Games imported successfully',
       inserted: games.length,
-      emailFailedCount: failedEmails.length,
     });
+
+    // ------------------------------------------------
+    // 🔥 BACKGROUND EMAIL SENDER
+    // ------------------------------------------------
+    setImmediate(async () => {
+      for (const email of emailQueue) {
+        try {
+          await emailService.sendGmailEmail(
+            email.to,
+            email.subject,
+            email.template,
+            email.vars
+          );
+          await delay(1500);
+        } catch (err) {
+          logger.error(`Background email failed for ${email.to}`, err);
+        }
+      }
+    });
+
   } catch (error) {
     console.error('❌ Import error:', error);
     throw new ApiError(500, `Import failed: ${error.message}`);
