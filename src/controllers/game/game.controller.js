@@ -197,7 +197,7 @@ const parseDateWithTimezone = (value, userTimeZone = 'UTC') => {
 
   return localMoment.utc().toDate();
 };
-
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // ----------------------------------------------------
 // Helper: convert 2D array (from sheet) to JSON rows
 // ----------------------------------------------------
@@ -221,7 +221,7 @@ const sheetArrayToJson = (arr2d) => {
 };
 
 // ----------------------------------------------------
-// Import Games from Excel or CSV (now using xlsx-populate for xlsx)
+// Import Games from Excel or CSV
 // ----------------------------------------------------
 const importGamesFromFile = catchAsync(async (req, res) => {
   try {
@@ -231,18 +231,10 @@ const importGamesFromFile = catchAsync(async (req, res) => {
     let data = [];
 
     if (ext === '.xlsx' || ext === '.xls') {
-      // Use xlsx-populate to read buffer
       const workbook = await XlsxPopulate.fromDataAsync(req.file.buffer);
-      // use first sheet
       const sheet = workbook.sheets()[0];
-      // Get used range as 2D array
       const usedRange = sheet.usedRange();
-      if (!usedRange) {
-        data = [];
-      } else {
-        const arr = usedRange.value(); // 2D array
-        data = sheetArrayToJson(arr);
-      }
+      data = usedRange ? sheetArrayToJson(usedRange.value()) : [];
     } else if (ext === '.csv') {
       const results = [];
       await new Promise((resolve, reject) => {
@@ -250,7 +242,7 @@ const importGamesFromFile = catchAsync(async (req, res) => {
           .createReadStream(req.file.buffer)
           .pipe(csv())
           .on('data', (row) => results.push(row))
-          .on('end', () => resolve(results))
+          .on('end', () => resolve())
           .on('error', reject);
       });
       data = results;
@@ -260,7 +252,6 @@ const importGamesFromFile = catchAsync(async (req, res) => {
 
     if (!data.length) throw new ApiError(400, 'No data found in file');
 
-    // Build match filters
     const match = {};
     const usermatch = { role: 'scorekeeper' };
     if (req.user.role === 'event-director') {
@@ -281,10 +272,10 @@ const importGamesFromFile = catchAsync(async (req, res) => {
     const createdFields = [];
     const createdUsers = [];
     const games = [];
+    const failedEmails = [];
     const userTimeZone = req.body.timeZone || 'UTC';
-    console.log(data);
+
     for (const row of data) {
-      // Possible header names tolerant matching
       const homeTeamName = (row['Home Team Name'] ?? row['home team name'] ?? row['homeTeamName'] ?? row['home'] ?? '').toString().trim();
       const awayTeamName = (row['Away Team Name'] ?? row['away team name'] ?? row['awayTeamName'] ?? row['away'] ?? '').toString().trim();
       const fieldName = (row['Field Name'] ?? row['field name'] ?? row['fieldName'] ?? row['field'] ?? '').toString().trim();
@@ -295,11 +286,22 @@ const importGamesFromFile = catchAsync(async (req, res) => {
 
       const fieldId = await ensureField(fieldName, req, fieldMap, createdFields);
       const assignUserId = await ensureUser(scorekeeperEmail, req, userMap, createdUsers);
-      await emailService.sendGmailEmail(
-        scorekeeperEmail, "New Game Assigned to You", 'scorekeeperAssignGameEmail', {
-        url: config.ADMIN_BASE_URL
-      });
-      let data = {
+
+      // ✅ Email is OPTIONAL — ignore errors
+      try {
+        await emailService.sendGmailEmail(
+          scorekeeperEmail,
+          'New Game Assigned to You',
+          'scorekeeperAssignGameEmail',
+          { url: config.ADMIN_BASE_URL }
+        );
+        await delay(1500);
+      } catch (emailError) {
+        failedEmails.push(scorekeeperEmail);
+        logger.error(`Email failed for ${scorekeeperEmail}`, emailError);
+      }
+
+      const gameData = {
         homeTeamName: homeTeamName || undefined,
         awayTeamName: awayTeamName || undefined,
         fieldId,
@@ -307,19 +309,21 @@ const importGamesFromFile = catchAsync(async (req, res) => {
         startDateTime: parsedStart,
         createdBy: req.user._id,
       };
+
       if (req.body.eventId) {
-        data.eventId = req.body.eventId;
+        gameData.eventId = req.body.eventId;
       }
-      games.push(data);
+
+      games.push(gameData);
     }
 
-    // Insert into DB
     await service.insertMany(games);
 
     res.status(200).json({
       success: true,
       message: '✅ Games imported successfully',
       inserted: games.length,
+      emailFailedCount: failedEmails.length,
     });
   } catch (error) {
     console.error('❌ Import error:', error);
