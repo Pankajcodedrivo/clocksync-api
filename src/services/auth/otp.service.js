@@ -24,7 +24,7 @@ const generateOtp = async (user, type) => {
     user.email,
     'Password Reset OTP',
     'otpEmail',
-    { otp: otp }
+    { otp: otp.otp }
   );
 };
 
