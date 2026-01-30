@@ -23,9 +23,6 @@ const forgotPassword = catchAsync(async (req, res, next) => {
   if (!user) {
     throw new ApiError('User Not Found', 404);
   }
-  if (user.role != 'admin') {
-    throw new ApiError('This email id is not belongs to an Admin', 404);
-  }
 
   await otp.generateOtp(user, 'forgetPass');
   res.status(200).send({
@@ -67,10 +64,6 @@ const forgotPasswordResend = catchAsync(async (req, res, next) => {
   const user = await service.findUserByEmail(req.body.email);
   if (!user) {
     throw new ApiError('User Not Found', 404);
-  }
-
-  if (user.role != 'admin') {
-    throw new ApiError('This email id is not belongs to an Admin', 404);
   }
 
   await otp.generateOtp(user, 'resend');

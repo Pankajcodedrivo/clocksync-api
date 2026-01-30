@@ -2,7 +2,7 @@ const ApiError = require('../../helpers/apiErrorConverter');
 const Otp = require('../../models/otp.model');
 const User = require('../../models/user.model');
 const crypto = require('crypto');
-const email = require('../email/email.service');
+const emailService = require('../email/gmail.service');
 const config = require('../../config/config');
 
 function generateSecureOTP() {
@@ -20,28 +20,12 @@ const generateOtp = async (user, type) => {
   if (!otp) {
     throw new ApiError('Error In OTP generations', 500);
   }
-  if (type == 'emailVerify') {
-    await email.sendSendgridEmail(
-      user.email,
-      'Email Verification',
-      otp.otp,
-      'd-92ce28b7f6664d5a9f53bb53003609f3',
-    );
-  } else if (type == 'resend') {
-    await email.sendSendgridEmail(
-      user.email,
-      'Email Verification',
-      otp.otp,
-      'd-92ce28b7f6664d5a9f53bb53003609f3',
-    );
-  } else {
-    await email.sendSendgridEmail(
-      user.email,
-      'Password Reset OTP',
-      otp.otp,
-      'd-92ce28b7f6664d5a9f53bb53003609f3',
-    );
-  }
+  await emailService.sendGmailEmail(
+    user.email,
+    'Password Reset OTP',
+    'otpEmail',
+    { otp: otp }
+  );
 };
 
 const getOtpIfVerified = async (email, otp) => {
