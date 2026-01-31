@@ -3,7 +3,13 @@ const GameStatistics = require("../models/gameStatistics.model");
 
 // Create stats for new game
 const createGameStatistics = async (gameId) => {
-    return GameStatistics.create({ gameId });
+    let stats = await getStatsByGameId(gameId);
+
+    if (!stats) {
+        stats = await createGameStatistics(gameId);
+    }
+
+    return stats;
 };
 
 // Get stats by gameId
@@ -66,7 +72,7 @@ const addGoal = async (gameId, team, playerNo, minute, second) => {
 const addPenalty = async (gameId, team, type, playerNo, minutes, seconds) => {
 
     const gameStats = await GameStatistics.findOne({ gameId });
-    if (!gameStats) createGameStatistics(gameId);
+    if (!gameStats) throw new Error("Game not found");
 
     const { minutes: clockMin, seconds: clockSec } = gameStats.clock;
 
@@ -157,7 +163,7 @@ const addActionEvent = async (payload) => {
     } = payload;
 
     const gameStats = await GameStatistics.findOne({ gameId });
-    if (!gameStats) createGameStatistics(gameId);
+    if (!gameStats) throw new Error("Game not found");
 
     const currentQuarter = gameStats.clock?.quarter || 1;
     const minute = gameStats.clock?.minutes || 0;
@@ -198,7 +204,7 @@ const undoAction = async (payload) => {
     const { gameId, teamName: requestedTeam } = payload;
 
     const gameStats = await GameStatistics.findOne({ gameId });
-    if (!gameStats) createGameStatistics(gameId);
+    if (!gameStats) throw new Error("Game not found");
 
     if (!Array.isArray(gameStats.actions) || gameStats.actions.length === 0) {
         return gameStats; // no actions at all

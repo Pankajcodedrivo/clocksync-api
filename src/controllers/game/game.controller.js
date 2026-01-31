@@ -111,9 +111,10 @@ const getGameByIdAndUserId = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const game = await service.getGameByIdAndUserId(id, req.user.id);
+  if (!game) throw new ApiError(404, 'Game not found');
   const gameStatistics = await gameStatisticsService.getStatsByGameId(id);
 
-  if (!game) throw new ApiError(404, 'Game not found');
+
 
   res.status(200).json({ game, gameStatistics });
 });

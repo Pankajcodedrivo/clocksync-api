@@ -146,8 +146,6 @@ mongoose.connect(config.mongoose.url).then(() => {
       const stats = await GameStatisticsService.getStatsByGameId(gameId);
       if (stats) {
         socket.emit('statUpdated', stats);
-      } else {
-        await GameStatisticsService.createGameStatistics(gameId);
       }
     });
 
@@ -165,11 +163,6 @@ mongoose.connect(config.mongoose.url).then(() => {
           quarter: 0,
           running: false,
         });
-      }
-      const stats = await GameStatisticsService.getStatsByGameId(gameId);
-      if (stats) {
-      } else {
-        await GameStatisticsService.createGameStatistics(gameId);
       }
       io.to(`user:${userId}`).emit('universalClockState', clock);
     });
