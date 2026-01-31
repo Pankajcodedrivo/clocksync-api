@@ -3,18 +3,18 @@ const GameStatistics = require("../models/gameStatistics.model");
 
 // Create stats for new game
 const createGameStatistics = async (gameId) => {
-    let stats = await getStatsByGameId(gameId);
+    return GameStatistics.create({ gameId });
+};
+
+// Get stats by gameId
+const getStatsByGameId = async (gameId) => {
+    let stats = await GameStatistics.findOne({ gameId });
 
     if (!stats) {
         stats = await createGameStatistics(gameId);
     }
 
     return stats;
-};
-
-// Get stats by gameId
-const getStatsByGameId = async (gameId) => {
-    return GameStatistics.findOne({ gameId });
 };
 /*
 const resetGame = async (gameId) => {
