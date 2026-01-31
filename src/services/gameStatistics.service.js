@@ -66,7 +66,7 @@ const addGoal = async (gameId, team, playerNo, minute, second) => {
 const addPenalty = async (gameId, team, type, playerNo, minutes, seconds) => {
 
     const gameStats = await GameStatistics.findOne({ gameId });
-    if (!gameStats) throw new Error("Game not found");
+    if (!gameStats) createGameStatistics(gameId);
 
     const { minutes: clockMin, seconds: clockSec } = gameStats.clock;
 
@@ -157,7 +157,7 @@ const addActionEvent = async (payload) => {
     } = payload;
 
     const gameStats = await GameStatistics.findOne({ gameId });
-    if (!gameStats) throw new Error("Game not found");
+    if (!gameStats) createGameStatistics(gameId);
 
     const currentQuarter = gameStats.clock?.quarter || 1;
     const minute = gameStats.clock?.minutes || 0;
@@ -198,7 +198,7 @@ const undoAction = async (payload) => {
     const { gameId, teamName: requestedTeam } = payload;
 
     const gameStats = await GameStatistics.findOne({ gameId });
-    if (!gameStats) throw new Error("Game not found");
+    if (!gameStats) createGameStatistics(gameId);
 
     if (!Array.isArray(gameStats.actions) || gameStats.actions.length === 0) {
         return gameStats; // no actions at all
