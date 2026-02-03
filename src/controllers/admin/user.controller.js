@@ -143,8 +143,7 @@ const switchUser = catchAsync(async (req, res) => {
     throw new ApiError(404, 'User not found');
   }
 
-  // Authorization check
-  if (user.role !== 'event-director') {
+  if (!['event-director', 'scorekeeper'].includes(user.role)) {
     throw new ApiError(403, 'You are not authorized to switch to this account');
   }
 
