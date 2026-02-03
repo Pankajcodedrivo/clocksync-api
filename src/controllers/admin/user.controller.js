@@ -1,6 +1,7 @@
 const catchAsync = require('../../helpers/asyncErrorHandler');
 const service = require('../../services/admin/user.service');
 const tokenService = require('../../services/auth/token.service');
+const ApiError = require('../../helpers/apiErrorConverter');
 const listUser = catchAsync(async (req, res, next) => {
   const limit = req.params.limit ? Number(req.params.limit) : 10;
   const page = req.params.page ? Number(req.params.page) : 1;
