@@ -14,7 +14,9 @@ const axios = require('axios');
  */
 const createField = catchAsync(async (req, res) => {
   let { name, ads = {}, unviseralClock, adsTime } = req.body;
-
+  if (typeof ads === "string") {
+    ads = JSON.parse(ads);
+  }
   if (!name) throw new ApiError(400, 'Field name is required');
   name = name.trim();
 
@@ -32,7 +34,9 @@ const createField = catchAsync(async (req, res) => {
   // ✅ Map uploaded files to real URLs
   const uploadedFilesMap = {};
   (req.files || []).forEach((file) => {
-    uploadedFilesMap[file.fieldname] = file.location || file.path;
+    if (!uploadedFilesMap[file.fieldname]) {
+      uploadedFilesMap[file.fieldname] = file.location || file.path;
+    }
   });
 
   // ✅ Replace placeholders or use direct URLs
