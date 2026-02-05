@@ -1,6 +1,7 @@
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
+const { randomUUID } = require('crypto');
 const config = require('../config/config'); // your config file with env vars
 // Configure AWS S3
 const s3 = new S3Client({
@@ -18,7 +19,7 @@ const upload = multer({
     key: function (req, file, cb) {
       const extension = file.originalname.split('.').pop(); // get file extension
       const timestamp = Date.now();
-      const uniqueKey = `cloclsync/${timestamp}.${extension}`; // unique key per upload
+      const uniqueKey = `cloclsync/${Date.now()}-${randomUUID()}.${extension}`;
       cb(null, uniqueKey);
     },
   }),

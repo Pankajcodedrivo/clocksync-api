@@ -96,6 +96,11 @@ const updateField = catchAsync(async (req, res) => {
   const { id } = req.params;
   let { name, ads = {}, unviseralClock, adsTime } = req.body;
 
+  // ✅ IMPORTANT
+  if (typeof ads === "string") {
+    ads = JSON.parse(ads);
+  }
+
   if (!name) throw new ApiError(400, 'Field name is required');
   name = name.trim();
 
@@ -105,7 +110,7 @@ const updateField = catchAsync(async (req, res) => {
   const field = await service.getByFieldId(id);
   if (!field) throw new ApiError(404, 'Field not found');
 
-  // ✅ Slug & QR logic
+  // ✅ Slug & QR
   let slug = field.slug;
   let qrCodeUrl = field.qrCodeUrl;
 
@@ -128,37 +133,39 @@ const updateField = catchAsync(async (req, res) => {
   // ✅ Map uploaded files
   const uploadedFilesMap = {};
   (req.files || []).forEach((file) => {
-    uploadedFilesMap[file.fieldname] = file.location || file.path;
+    if (!uploadedFilesMap[file.fieldname]) {
+      uploadedFilesMap[file.fieldname] = file.location || file.path;
+    }
   });
 
-  // ✅ Merge updates: replace placeholder or keep old image
-  const mergeAds = (existingAds, updatedAds, platform, position) => {
-    return (updatedAds[platform]?.[position] || []).map((adObj, idx) => {
-      if (uploadedFilesMap[adObj.imageUrl]) {
+  // ✅ CORRECT MERGE (NO INDEX LOGIC)
+  const resolveAds = (updatedAds = []) => {
+    return updatedAds.map((ad) => {
+      // New uploaded file
+      if (uploadedFilesMap[ad.imageUrl]) {
         return {
-          imageUrl: uploadedFilesMap[adObj.imageUrl],
-          link: adObj.link || '',
+          imageUrl: uploadedFilesMap[ad.imageUrl],
+          link: ad.link || '',
         };
       }
 
-      const oldAd = existingAds[idx] || {};
+      // Keep existing image
       return {
-        imageUrl: adObj.imageUrl || oldAd.imageUrl || '',
-        link: adObj.link || oldAd.link || '',
+        imageUrl: ad.imageUrl || '',
+        link: ad.link || '',
       };
     });
   };
-
   const desktopAds = {
-    top: mergeAds(field.ads.desktop.top, ads, 'desktop', 'top'),
-    left: mergeAds(field.ads.desktop.left, ads, 'desktop', 'left'),
-    right: mergeAds(field.ads.desktop.right, ads, 'desktop', 'right'),
+    top: resolveAds(ads.desktop?.top),
+    left: resolveAds(ads.desktop?.left),
+    right: resolveAds(ads.desktop?.right),
   };
 
   const mobileAds = {
-    top: mergeAds(field.ads.mobile.top, ads, 'mobile', 'top'),
-    middle: mergeAds(field.ads.mobile.middle, ads, 'mobile', 'middle'),
-    bottom: mergeAds(field.ads.mobile.bottom, ads, 'mobile', 'bottom'),
+    top: resolveAds(ads.mobile?.top),
+    middle: resolveAds(ads.mobile?.middle),
+    bottom: resolveAds(ads.mobile?.bottom),
   };
 
   const updatedField = await service.updateField(id, {
@@ -170,20 +177,27 @@ const updateField = catchAsync(async (req, res) => {
     ads: { desktop: desktopAds, mobile: mobileAds },
     status: req.user.role === 'admin' ? 'approve' : 'pending',
   });
+
   if (req.user.role !== 'admin') {
     await emailService.sendGmailEmail(
-      'admin@clocksynk.com', "Approval required", 'fieldAddedUpdateEmail', {
-      name: req.user.fullName,
-      status: "updated",
-      url: config.ADMIN_BASE_URL
-    });
+      'admin@clocksynk.com',
+      "Approval required",
+      'fieldAddedUpdateEmail',
+      {
+        name: req.user.fullName,
+        status: "updated",
+        url: config.ADMIN_BASE_URL
+      }
+    );
   }
+
   res.status(200).json({
     message: 'Field updated successfully',
     field: updatedField,
     qrCodeUrl,
   });
 });
+
 
 const updateUniversalClock = catchAsync(async (req, res) => {
   const { id } = req.params;
