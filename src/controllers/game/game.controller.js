@@ -150,14 +150,16 @@ const listNotEndGames = catchAsync(async (req, res) => {
 // List  of not  end  game
 // ----------------------------------------------------
 const updateNotEndGames = catchAsync(async (req, res) => {
+  const { id } = req.params;
   const updatedGame = await service.updateGame(id, { endGame: true });
 
   res.status(200).json({
     success: true,
-    message: "End game successfully"
+    message: "Game ended successfully",
+    data: updatedGame,
   });
-
 });
+
 
 
 // ----------------------------------------------------
