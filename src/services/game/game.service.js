@@ -32,6 +32,16 @@ const updateGame = async (id, data) => {
   return game.save();
 };
 
+const listNotEndGames = async ({ user }) => {
+  const match = { endGame: false };
+
+  if (user?.role === 'event-director' && user?._id) {
+    match.createdBy = new mongoose.Types.ObjectId(user._id);
+  }
+
+  return Game.find(match);
+};
+
 // ✅ List all games with pagination + search
 const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = "" }) => {
   const skip = (page - 1) * limit;
@@ -207,5 +217,6 @@ module.exports = {
   endGameManually,
   insertMany,
   getGameByEventId,
-  deleteGamesByIds
+  deleteGamesByIds,
+  listNotEndGames
 };

@@ -132,6 +132,22 @@ const deleteGame = catchAsync(async (req, res) => {
 });
 
 // ----------------------------------------------------
+// List  of not  end  game
+// ----------------------------------------------------
+const listNotEndGames = catchAsync(async (req, res) => {
+  const result = await service.listNotEndGames({
+    user: req.user
+  });
+
+  res.status(200).json({
+    success: true,
+    ...result,
+  });
+
+});
+
+
+// ----------------------------------------------------
 // Delete Multiple Games
 // ----------------------------------------------------
 const deleteGames = catchAsync(async (req, res) => {
@@ -576,4 +592,5 @@ module.exports = {
   getGameScoreByGameId,
   deleteGames,
   downloadGameStatistics,
+  listNotEndGames,
 };
