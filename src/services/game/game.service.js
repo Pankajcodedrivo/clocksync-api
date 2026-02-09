@@ -61,7 +61,7 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
     match.fieldId = new mongoose.Types.ObjectId(fieldId);
   }
   if (scorekeeperId) {
-    match.assignUserId = new mongoose.Types.ObjectId(assignUserId);
+    match.assignUserId = new mongoose.Types.ObjectId(scorekeeperId);
   }
 
   if (eventId) {
