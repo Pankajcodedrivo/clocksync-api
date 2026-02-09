@@ -33,7 +33,10 @@ const updateGame = async (id, data) => {
 };
 
 const listNotEndGames = async ({ user }) => {
-  const match = { endGame: false };
+  const match = {
+    endGame: false,
+    startDateTime: { $lte: new Date() }, // today
+  };
 
   if (user?.role === 'event-director' && user?._id) {
     match.createdBy = new mongoose.Types.ObjectId(user._id);
