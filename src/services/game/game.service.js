@@ -46,7 +46,8 @@ const listNotEndGames = async ({ user }) => {
 };
 
 // ✅ List all games with pagination + search
-const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = "" }) => {
+const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = "", fieldId = "",
+  scorekeeperId = "" }) => {
   const skip = (page - 1) * limit;
 
   const match = {};
@@ -55,6 +56,12 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
   }
   if (user.role === 'event-director' && user._id) {
     match.createdBy = new mongoose.Types.ObjectId(user._id);
+  }
+  if (fieldId) {
+    match.fieldId = new mongoose.Types.ObjectId(fieldId);
+  }
+  if (scorekeeperId) {
+    match.assignUserId = new mongoose.Types.ObjectId(assignUserId);
   }
 
   if (eventId) {

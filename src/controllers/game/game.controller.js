@@ -50,6 +50,8 @@ const listGames = catchAsync(async (req, res) => {
   const limit = parseInt(req.params.limit) || 10;
   const search = req.query.search || '';
   const eventId = req.query.eventId || '';
+  const fieldId = req.query.fieldId || '';
+  const scorekeeperId = req.query.scorekeeperId || '';
 
   const result = await service.listGames({
     page,
@@ -57,6 +59,8 @@ const listGames = catchAsync(async (req, res) => {
     search,
     user: req.user,
     eventId,
+    fieldId,
+    scorekeeperId
   });
 
   res.status(200).json({
