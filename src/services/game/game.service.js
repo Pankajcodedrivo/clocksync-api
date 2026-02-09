@@ -42,7 +42,7 @@ const listNotEndGames = async ({ user }) => {
     match.createdBy = new mongoose.Types.ObjectId(user._id);
   }
 
-  return Game.find(match);
+  return Game.find(match).sort({ startDateTime: 1 });
 };
 
 // ✅ List all games with pagination + search
