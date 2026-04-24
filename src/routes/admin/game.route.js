@@ -25,6 +25,7 @@ router.get('/detail/:id', validator.params(validationSchema.singleId), controlle
 router.delete('/delete/:id', validator.params(validationSchema.singleId), controller.deleteGame);
 router.get('/notendgame/list/', controller.listNotEndGames);
 router.patch('/notendgame/update/:id', controller.updateNotEndGames);
+router.patch('/status/live/:id', validator.params(validationSchema.singleId), controller.markGameLive);
 router.delete(
     '/mullti-delete',
     validator.body(validationSchema.multipleIds),

@@ -247,7 +247,8 @@ mongoose.connect(config.mongoose.url).then(() => {
 
     socket.on('removePenalty', async (payload) => {
       try {
-        const stats = await GameStatisticsService.updatePenaltyTimeById(payload.gameId, payload.id);
+        // Backward-compat: "removePenalty" should actually remove the penalty action from the timeline
+        const stats = await GameStatisticsService.deleteAction({ gameId: payload.gameId, actionId: payload.id });
         io.to(payload.gameId).emit('statUpdated', stats);
       } catch (err) {
         socket.emit('error', err.message);

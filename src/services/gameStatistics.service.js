@@ -157,6 +157,9 @@ const addActionEvent = async (payload) => {
         team,                // "home" or "away"
         type,                // "goal" | "shot_on" | "penalty" ...
         playerNo,
+        quarter,
+        minute,
+        second,
         duration,
         releasable,
         infraction
@@ -165,18 +168,25 @@ const addActionEvent = async (payload) => {
     const gameStats = await GameStatistics.findOne({ gameId });
     if (!gameStats) throw new Error("Game not found");
 
-    const currentQuarter = gameStats.clock?.quarter || 1;
-    const minute = gameStats.clock?.minutes || 0;
-    const second = gameStats.clock?.seconds || 0;
+    const clockQuarter = gameStats.clock?.quarter || 1;
+    const clockMinute = gameStats.clock?.minutes || 0;
+    const clockSecond = gameStats.clock?.seconds || 0;
+
+    const isIntInRange = (v, min, max) =>
+        Number.isInteger(v) && v >= min && v <= max;
+
+    const eventQuarter = isIntInRange(quarter, 1, 20) ? quarter : clockQuarter;
+    const eventMinute = isIntInRange(minute, 0, 59) ? minute : clockMinute;
+    const eventSecond = isIntInRange(second, 0, 59) ? second : clockSecond;
 
     // Build unified event
     const event = {
         type,
         team,
         playerNo,
-        quarter: currentQuarter,
-        minute,
-        second,
+        quarter: eventQuarter,
+        minute: eventMinute,
+        second: eventSecond,
     };
 
     // If penalty, attach penalty fields

@@ -51,10 +51,10 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
   const skip = (page - 1) * limit;
 
   const match = {};
-  if (user?.role === "scorekeeper") {
+  if (user?.role === "scorekeeper" && user?._id) {
     match.assignUserId = user._id;
   }
-  if (user.role === 'event-director' && user._id) {
+  if (user?.role === 'event-director' && user?._id) {
     match.createdBy = new mongoose.Types.ObjectId(user._id);
   }
   if (fieldId) {
@@ -66,16 +66,6 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
 
   if (eventId) {
     match.eventId = new mongoose.Types.ObjectId(eventId);
-  } else {
-    if (user.role === 'event-director') {
-      return {
-        total: 0,
-        page,
-        limit,
-        totalPages: 1,
-        games: [],
-      };
-    }
   }
   const pipeline = [
     {
@@ -107,7 +97,56 @@ const listGames = async ({ page = 1, limit = 10, search = "", user, eventId = ""
       },
     },
     { $unwind: { path: "$createdByUser", preserveNullAndEmptyArrays: true } },
+
+    // ✅ Lookup for game statistics (scores)
+    {
+      $lookup: {
+        from: "gamestatistics",
+        localField: "_id",
+        foreignField: "gameId",
+        as: "gameStatistics",
+      },
+    },
+    { $unwind: { path: "$gameStatistics", preserveNullAndEmptyArrays: true } },
+
     { $match: match },
+
+    // ✅ Add director fields + status + future-proof ids/times (response-only mapping)
+    {
+      $addFields: {
+        event_director_name: "$createdByUser.fullName",
+        event_director_email: "$createdByUser.email",
+        status: {
+          $ifNull: [
+            "$status",
+            {
+              $cond: [
+                "$endGame",
+                "final",
+                {
+                  $cond: [
+                    { $lte: ["$startDateTime", "$$NOW"] },
+                    "live",
+                    "upcoming",
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+
+        game_id: "$_id",
+        event_id: "$eventId",
+        field_id: "$fieldId",
+        home_team_id: "$homeTeamId",
+        away_team_id: "$awayTeamId",
+        start_time: "$startDateTime",
+        end_time: { $ifNull: ["$endDateTime", { $cond: ["$endGame", "$updatedAt", null] }] },
+
+        homeScore: "$gameStatistics.homeTeam.score",
+        awayScore: "$gameStatistics.awayTeam.score",
+      },
+    },
   ];
 
   // 🔎 Add search filter
@@ -184,6 +223,7 @@ const autoEndGames = async (io) => {
 
   for (const game of gamesToEnd) {
     game.endGame = true;
+    game.status = 'final';
     await game.save();
 
     if (io) {
@@ -207,6 +247,8 @@ const endGameManually = async (id) => {
   }
 
   game.endGame = true;
+  game.status = 'final';
+  game.endDateTime = new Date();
   await game.save();
   return game;
 };
@@ -214,6 +256,116 @@ const endGameManually = async (id) => {
 const insertMany = async (data) => {
   return Game.insertMany(data);
 }
+
+// ✅ Public list (no auth) for schedule/results view
+const listGamesPublic = async ({ eventId, fieldId = "", search = "" }) => {
+  if (!eventId) {
+    throw new Error("eventId is required");
+  }
+
+  const match = {
+    eventId: new mongoose.Types.ObjectId(eventId),
+  };
+
+  if (fieldId) {
+    match.fieldId = new mongoose.Types.ObjectId(fieldId);
+  }
+
+  const pipeline = [
+    {
+      $lookup: {
+        from: "fields",
+        localField: "fieldId",
+        foreignField: "_id",
+        as: "field",
+      },
+    },
+    { $unwind: { path: "$field", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "assignUserId",
+        foreignField: "_id",
+        as: "assignedUser",
+      },
+    },
+    { $unwind: { path: "$assignedUser", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdByUser",
+      },
+    },
+    { $unwind: { path: "$createdByUser", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "gamestatistics",
+        localField: "_id",
+        foreignField: "gameId",
+        as: "gameStatistics",
+      },
+    },
+    { $unwind: { path: "$gameStatistics", preserveNullAndEmptyArrays: true } },
+    { $match: match },
+  ];
+
+  if (search) {
+    pipeline.push({
+      $match: {
+        $or: [
+          { homeTeamName: { $regex: search, $options: "i" } },
+          { awayTeamName: { $regex: search, $options: "i" } },
+          { "field.name": { $regex: search, $options: "i" } },
+        ],
+      },
+    });
+  }
+
+  pipeline.push({
+    $addFields: {
+      event_director_name: "$createdByUser.fullName",
+      status: {
+        $ifNull: [
+          "$status",
+          {
+            $cond: [
+              "$endGame",
+              "final",
+              {
+                $cond: [
+                  { $lte: ["$startDateTime", "$$NOW"] },
+                  "live",
+                  "upcoming",
+                ],
+              },
+            ],
+          },
+        ],
+      },
+
+      game_id: "$_id",
+      event_id: "$eventId",
+      field_id: "$fieldId",
+      home_team_id: "$homeTeamId",
+      away_team_id: "$awayTeamId",
+      start_time: "$startDateTime",
+      end_time: { $ifNull: ["$endDateTime", { $cond: ["$endGame", "$updatedAt", null] }] },
+
+      homeScore: "$gameStatistics.homeTeam.score",
+      awayScore: "$gameStatistics.awayTeam.score",
+    },
+  });
+
+  const games = await Game.aggregate([
+    ...pipeline,
+    { $sort: { startDateTime: 1 } },
+  ]);
+
+  return { games };
+};
+
 module.exports = {
   createGame,
   getByGameId,
@@ -228,5 +380,6 @@ module.exports = {
   insertMany,
   getGameByEventId,
   deleteGamesByIds,
-  listNotEndGames
+  listNotEndGames,
+  listGamesPublic
 };

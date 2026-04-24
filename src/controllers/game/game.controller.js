@@ -70,6 +70,49 @@ const listGames = catchAsync(async (req, res) => {
 });
 
 // ----------------------------------------------------
+// Public List Games (no auth) - schedule/results view
+// ----------------------------------------------------
+const listPublicGames = catchAsync(async (req, res) => {
+  const search = req.query.search || '';
+  const eventId = req.query.eventId || '';
+  const fieldId = req.query.fieldId || '';
+
+  if (!eventId) throw new ApiError(400, 'eventId is required');
+
+  const result = await service.listGamesPublic({
+    search,
+    eventId,
+    fieldId,
+  });
+
+  res.status(200).json({
+    success: true,
+    ...result,
+  });
+});
+
+// ----------------------------------------------------
+// Mark Game Live (scorekeeper/admin/event-director)
+// ----------------------------------------------------
+const markGameLive = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  // scorekeepers can only mark their assigned game
+  if (req.user?.role === 'scorekeeper') {
+    const game = await service.getGameByIdAndUserId(id, req.user._id);
+    if (!game) throw new ApiError(404, 'Game not found');
+  }
+
+  const updated = await service.updateGame(id, { status: 'live' });
+
+  res.status(200).json({
+    success: true,
+    message: 'Game status updated to live',
+    game: updated,
+  });
+});
+
+// ----------------------------------------------------
 // Update Game
 // ----------------------------------------------------
 const updateGame = catchAsync(async (req, res) => {
@@ -155,7 +198,11 @@ const listNotEndGames = catchAsync(async (req, res) => {
 // ----------------------------------------------------
 const updateNotEndGames = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const updatedGame = await service.updateGame(id, { endGame: true });
+  const updatedGame = await service.updateGame(id, {
+    endGame: true,
+    status: 'final',
+    endDateTime: new Date(),
+  });
 
   res.status(200).json({
     success: true,
@@ -606,6 +653,8 @@ module.exports = {
   getGameById,
   deleteGame,
   listGames,
+  listPublicGames,
+  markGameLive,
   getGameByIdAndUserId,
   importGamesFromFile,
   getGameScoreByGameId,

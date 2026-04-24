@@ -7,6 +7,12 @@ const GameSchema = new mongoose.Schema({
     homeTeamLogo: { type: String },
     awayTeamName: { type: String, required: true },
     awayTeamLogo: { type: String },
+    homeTeamId: {
+        type: mongoose.Types.ObjectId,
+    },
+    awayTeamId: {
+        type: mongoose.Types.ObjectId,
+    },
     fieldId: {
         type: mongoose.Types.ObjectId,
         ref: Field,
@@ -18,9 +24,17 @@ const GameSchema = new mongoose.Schema({
     startDateTime: {
         type: Date,
     },
+    endDateTime: {
+        type: Date,
+    },
     endGame: {
         type: Boolean,
         default: false, // automatically set true after endDateTime OR by admin
+    },
+    status: {
+        type: String,
+        enum: ['upcoming', 'live', 'final'],
+        default: 'upcoming',
     },
     assignUserId: {
         type: mongoose.Types.ObjectId,
